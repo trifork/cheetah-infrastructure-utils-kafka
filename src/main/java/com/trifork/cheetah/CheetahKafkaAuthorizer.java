@@ -21,13 +21,10 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
     @Override
     public List<AuthorizationResult> authorize ( AuthorizableRequestContext requestContext, List<Action> actions )
     {
-        if (requestContext.listenerName().equals("PLAIN-9092")) {
-            return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
-        }
         List<AuthorizationResult> results = new ArrayList<>(actions.size());
         if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
             if (super.isSuperUser(requestContext.principal())) {
-                LOG.info(String.format("Superuser: %s", requestContext.principal().getName()));
+                LOG.debug(String.format("Superuser: %s", requestContext.principal().getName()));
                 return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
             } else {
                 return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
