@@ -2,6 +2,7 @@
 
 `CheetahKafkaAuthorizer` is used for claim based access to Kafka.
 Access is expressed though claims in a JWT with the following patter:
+
 ```json
 {
   "iat": 1679325503,
@@ -24,6 +25,6 @@ To use the Authorizer package the project using maven:
 
 `mvn package`
 
-Then 
+Then
 
 `docker build . -t my-kafka`
