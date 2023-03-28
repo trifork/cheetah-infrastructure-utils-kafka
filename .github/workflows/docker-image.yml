@@ -1,0 +1,48 @@
+name: Cheetah Kafka Docker Image
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches: ["main"]
+    tags:
+      - "v*"
+  pull_request:
+    branches: ["main"]
+
+env:
+  IMAGE_NAME: trifork/cheetah-infrastructure-utils-kafka # image name, must have gh org prefix
+  BASE_IMAGE: Dockerfile
+  CONTEXT: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: "11"
+          distribution: "temurin"
+          server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+          settings-path: ${{ inputs.settings-path }} # location for the settings.xml file
+          cache: "maven"
+
+      - name: Package with Maven
+        shell: bash
+        run: mvn -B package --file ${{ env.CONTEXT }}pom.xml
+
+      - name: "Build and push"
+        uses: trifork/cheetah-infrastructure-utils/.github/actions/build-image@main
+        with:
+          read_package_pat: ${{ secrets.PACKAGE_PAT }} # we need this, as GITHUB_TOKEN only have permission to its own repo
+          context: ${{ env.CONTEXT }}
+          image_name: ${{ env.IMAGE_NAME }}
+          github_actor: ${{ github.actor }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_run_id: ${{ github.run_id }}
+          base_image: ${{ env.BASE_IMAGE }}

@@ -1,0 +1,12 @@
+name: Maven Release
+
+on:
+  push:
+    branches:
+      - "release/**"
+
+jobs:
+  build:
+    uses: trifork/cheetah-infrastructure-utils/.github/workflows/maven-release.yml@main
+    with:
+      doBuild: true
