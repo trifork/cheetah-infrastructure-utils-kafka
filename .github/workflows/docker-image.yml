@@ -1,24 +1,22 @@
-name: Cheetah Kafka Docker Image
+name: Create and publish Cheetah Kafka Docker Image
 
 on:
   workflow_dispatch:
 
   push:
-    branches: ["main"]
+    branches: ["main", "release/**"]
     tags:
       - "v*"
   pull_request:
-    branches: ["main"]
+    branches: ["main", "release/**"]
 
 env:
-  IMAGE_NAME: trifork/cheetah-infrastructure-utils-kafka # image name, must have gh org prefix
   BASE_IMAGE: Dockerfile
   CONTEXT: .
 
 jobs:
-  build:
+  build-and-push-image:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -41,8 +39,9 @@ jobs:
         with:
           read_package_pat: ${{ secrets.PACKAGE_PAT }} # we need this, as GITHUB_TOKEN only have permission to its own repo
           context: ${{ env.CONTEXT }}
-          image_name: ${{ env.IMAGE_NAME }}
+          image_name: ${{ github.repository }}
           github_actor: ${{ github.actor }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_run_id: ${{ github.run_id }}
           base_image: ${{ env.BASE_IMAGE }}
+          push_image: true
