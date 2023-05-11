@@ -1,7 +1,7 @@
 # Cheetah Kafka Authorizer
 
 `CheetahKafkaAuthorizer` is used for claim based access to Kafka.
-Access is expressed though claims in a JWT with the following patter:
+Access is expressed through claims in a JWT with the following pattern:
 
 ```json
 {

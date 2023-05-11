@@ -38,7 +38,6 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         List<TopicAccess> topicAccesses = extractAccesses(topicClaim);
 
         for (Action action : actions) {
-            isClusterOrGroup(action);
             if (isClusterOrGroup(action) || checkJwtClaims(topicAccesses, action)) {
                 results.add(AuthorizationResult.ALLOWED);
                 continue;
