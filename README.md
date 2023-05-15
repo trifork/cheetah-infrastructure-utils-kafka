@@ -8,16 +8,7 @@ Access is expressed through claims in a JWT with the following pattern:
   "iat": 1679325503,
   "sub": "a252a70e-363e-42aa-a62b-6f7f54d4c8bd",
   ...
-  "topics": [
-    {
-      "pattern": "MyKafkaTopic",
-      "operation": "all"
-    },
-    {
-      "pattern": "ReadAccessTopic",
-      "operation": "read"
-    }
-  ]
+  "topics": "*_all, MyTopic_all, YourTopic_read"
 }
 ```
 

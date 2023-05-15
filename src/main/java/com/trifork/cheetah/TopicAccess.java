@@ -6,15 +6,6 @@ public class TopicAccess
 {
     public final String pattern;
 
-    @Override
-    public String toString ()
-    {
-        return "TopicAccess{" +
-            "pattern='" + pattern + '\'' +
-            ", operation='" + operation + '\'' +
-            '}';
-    }
-
     public TopicAccess ( String pattern, String operation )
     {
         this.pattern = pattern;

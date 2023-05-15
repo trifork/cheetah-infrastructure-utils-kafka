@@ -1,5 +1,7 @@
 package com.trifork.cheetah;
 
+import io.strimzi.kafka.oauth.common.ConfigException;
+import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import kafka.security.authorizer.AclAuthorizer;
 import org.apache.kafka.common.acl.AclOperation;
@@ -10,13 +12,36 @@ import org.apache.kafka.server.authorizer.AuthorizationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class CheetahKafkaAuthorizer extends AclAuthorizer
 {
     static final Logger LOG = LoggerFactory.getLogger(CheetahKafkaAuthorizer.class.getName());
+    private String topicClaimName;
+
+    @Override
+    public void configure ( Map<String, ?> configs )
+    {
+        CheetahConfig config = convertToCheetahConfig(configs);
+
+        topicClaimName = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_NAME, "topics");
+
+        super.configure(configs);
+    }
+
+    private CheetahConfig convertToCheetahConfig ( Map<String, ?> configs )
+    {
+        Properties p = new Properties();
+        String[] keys = {
+            CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_NAME
+        };
+
+        for (var key : keys) {
+            ConfigUtil.putIfNotNull(p, key, configs.get(key));
+        }
+
+        return new CheetahConfig(p);
+    }
 
     @Override
     public List<AuthorizationResult> authorize ( AuthorizableRequestContext requestContext, List<Action> actions )
@@ -33,7 +58,13 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
 
         var principal = (OAuthKafkaPrincipal) requestContext.principal();
 
-        var topicClaim = principal.getJwt().getJSON().get("topics").asText();
+        String topicClaim;
+        try {
+            topicClaim = principal.getJwt().getJSON().get(topicClaimName).asText();
+        } catch (Exception e) {
+            LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
+            return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
+        }
 
         List<TopicAccess> topicAccesses = extractAccesses(topicClaim);
 
@@ -73,7 +104,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
     {
         for (TopicAccess t : topicAccesses) {
             if (action.resourcePattern().resourceType().equals(ResourceType.TOPIC) &&
-                action.resourcePattern().name().startsWith(t.pattern.replace("*", "")) &&
+                matchTopicPattern(action, t) &&
                 (t.operation.equals(AclOperation.ALL) ||
                     t.operation.equals(AclOperation.ANY) ||
                     action.operation().equals(t.operation))) {
@@ -84,9 +115,19 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         return false;
     }
 
+    private static boolean matchTopicPattern ( Action action, TopicAccess t )
+    {
+        if (t.pattern.endsWith("*")) {
+            return action.resourcePattern().name().startsWith(t.pattern.replace("*", ""));
+        } else if (t.pattern.startsWith("*")) {
+            return action.resourcePattern().name().endsWith((t.pattern.replace("*", "")));
+        } else {
+            return action.resourcePattern().name().equals(t.pattern);
+        }
+    }
+
     private boolean isClusterOrGroup ( Action action )
     {
-
         return action.resourcePattern().resourceType().equals(ResourceType.CLUSTER) || action.resourcePattern().resourceType().equals(ResourceType.GROUP);
     }
 }
