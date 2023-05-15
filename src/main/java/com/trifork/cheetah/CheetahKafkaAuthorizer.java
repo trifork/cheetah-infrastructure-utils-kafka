@@ -1,6 +1,5 @@
 package com.trifork.cheetah;
 
-import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import kafka.security.authorizer.AclAuthorizer;

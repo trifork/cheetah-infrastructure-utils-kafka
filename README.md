@@ -12,6 +12,11 @@ Access is expressed through claims in a JWT with the following pattern:
 }
 ```
 
+# Deployment
+
+Configure the Claim in JWT to look for topic access by setting:
+`cheetah.authorization.claim.name=<claimName>`
+
 To use the Authorizer package the project using maven:
 
 `mvn package`
