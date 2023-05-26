@@ -55,4 +55,20 @@ class CheetahKafkaAuthorizerTest
         boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "NotMyTopic", PatternType.LITERAL), 1, false, false));
         Assertions.assertFalse(result);
     }
+
+    @Test
+    void testCheckJwtClaimsDenyWithoutWildcard ()
+    {
+        List<TopicAccess> topicAccess = extractAccesses("MyTopic_describe");
+        boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "MyTopicTest", PatternType.LITERAL), 1, false, false));
+        Assertions.assertFalse(result);
+    }
+
+    @Test
+    void testCheckJwtClaimsAllowWithStartWildcard ()
+    {
+        List<TopicAccess> topicAccess = extractAccesses("*MyTopic_describe");
+        boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "TestMyTopic", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
+    }
 }
