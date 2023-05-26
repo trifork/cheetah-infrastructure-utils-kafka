@@ -15,4 +15,4 @@ updates:
     schedule:
       # Check for updates to maven every week
       interval: "daily"
-      pull-requests-limit: 0
+      open-pull-requests-limit: 0
