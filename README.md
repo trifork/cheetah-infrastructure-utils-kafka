@@ -24,3 +24,4 @@ To use the Authorizer package the project using maven:
 Then
 
 `docker build . -t my-kafka`
+
