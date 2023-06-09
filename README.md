@@ -17,6 +17,12 @@ Access is expressed through claims in a JWT with the following pattern:
 Configure the Claim in JWT to look for topic access by setting:
 `cheetah.authorization.claim.name=<claimName>`
 
+If the claims have a prefix before the topic name (i.e. `Kafka_MyTopicName_Read` ), this can be configured by setting:
+`cheetah.authorization.claim.prefix=<prefix>`
+
+If the claim is a list of accesses instead of a string of comma seperated accesses you can set:
+`cheetah.authorization.claim.is-list=true`
+
 To use the Authorizer package the project using maven:
 
 `mvn package`
