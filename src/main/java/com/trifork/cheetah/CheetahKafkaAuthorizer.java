@@ -3,6 +3,7 @@ package com.trifork.cheetah;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import kafka.security.authorizer.AclAuthorizer;
+import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
@@ -46,6 +47,17 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         }
 
         return new CheetahConfig(p);
+    }
+
+    @Override
+    public AuthorizationResult authorizeByResourceType ( AuthorizableRequestContext requestContext, AclOperation op, ResourceType resourceType )
+    {
+        LOG.warn("AuthorizeByResourceType called");
+        var res = super.authorizeByResourceType(requestContext, op, resourceType);
+        if (LOG.isWarnEnabled()) {
+            LOG.warn(String.format("AuthorizationResult: %s", res.toString()));
+        }
+        return res;
     }
 
     @Override
