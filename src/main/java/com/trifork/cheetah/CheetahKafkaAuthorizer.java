@@ -3,7 +3,6 @@ package com.trifork.cheetah;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import kafka.security.authorizer.AclAuthorizer;
-import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
@@ -79,7 +78,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         List<TopicAccess> topicAccesses = extractAccesses(accesses, prefix);
 
         for (Action action : actions) {
-            if (isClusterOrGroupDescribe(action) || checkJwtClaims(topicAccesses, action)) {
+            if (checkJwtClaims(topicAccesses, action)) {
                 results.add(AuthorizationResult.ALLOWED);
                 continue;
             }
@@ -160,25 +159,55 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
     public static boolean checkJwtClaims ( List<TopicAccess> topicAccesses, Action action )
     {
         for (TopicAccess t : topicAccesses) {
-            // Action must be of type Topic and topic pattern must match
-            if (!action.resourcePattern().resourceType().equals(ResourceType.TOPIC) ||
-                !matchTopicPattern(action, t)) {
-                continue;
-            }
-
-            // ALL and ANY grant access to everything
-            if (List.of(ALL, ANY).contains(t.operation)) return true;
-
-            switch (action.operation()) {
-                case DESCRIBE:
-                    // WRITE, READ, DELETE and ALTER implicitly allows DESCRIBE
-                    if (List.of(WRITE, READ, DELETE, ALTER, DESCRIBE).contains(t.operation)) return true;
+            switch (action.resourcePattern().resourceType()) {
+                case TOPIC:
+                    if (matchTopicPattern(action, t) && checkTopicAccess(t, action)) return true;
+                    break;
+                case CLUSTER:
+                    if (checkClusterAccess(t, action)) return true;
+                    break;
+                case GROUP:
+                    if (checkGroupAccess(t, action)) return true;
+                    break;
                 default:
-                    if (t.operation.equals(action.operation())) return true;
-
+                    break;
             }
         }
         return false;
+    }
+
+    private static boolean checkGroupAccess ( TopicAccess t, Action action )
+    {
+        switch (action.operation()) {
+            case READ:
+                return READ.equals(t.operation);
+            case DESCRIBE:
+                return List.of(READ, WRITE, DESCRIBE).contains(t.operation);
+            default:
+                return false;
+        }
+    }
+
+    private static boolean checkClusterAccess ( TopicAccess t, Action action )
+    {
+        switch (action.operation()) {
+            case IDEMPOTENT_WRITE:
+                return WRITE.equals(t.operation);
+            default:
+                return false;
+        }
+    }
+
+    private static boolean checkTopicAccess ( TopicAccess t, Action action )
+    {
+        switch (action.operation()) {
+            case DESCRIBE:
+                // WRITE, READ, DELETE and ALTER implicitly allows DESCRIBE
+                return List.of(WRITE, READ, DELETE, ALTER, DESCRIBE).contains(t.operation);
+            default:
+                return List.of(ANY, ALL).contains(t.operation) || action.operation().equals(t.operation);
+
+        }
     }
 
     private static boolean matchTopicPattern ( Action action, TopicAccess t )
@@ -192,8 +221,4 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         }
     }
 
-    private boolean isClusterOrGroupDescribe ( Action action )
-    {
-        return (action.operation().equals(DESCRIBE) || action.operation().equals(CREATE) || action.operation().equals(READ)) && (action.resourcePattern().resourceType().equals(ResourceType.CLUSTER) || action.resourcePattern().resourceType().equals(ResourceType.GROUP));
-    }
 }
