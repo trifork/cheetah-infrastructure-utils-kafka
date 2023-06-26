@@ -203,7 +203,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         switch (action.operation()) {
             case DESCRIBE:
                 // WRITE, READ, DELETE and ALTER implicitly allows DESCRIBE
-                return List.of(WRITE, READ, DELETE, ALTER, DESCRIBE).contains(t.operation);
+                return List.of(WRITE, READ, DELETE, ALTER, DESCRIBE, ANY, ALL).contains(t.operation);
             default:
                 return List.of(ANY, ALL).contains(t.operation) || action.operation().equals(t.operation);
 
