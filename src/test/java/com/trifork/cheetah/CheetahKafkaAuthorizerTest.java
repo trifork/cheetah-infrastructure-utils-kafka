@@ -20,7 +20,7 @@ class CheetahKafkaAuthorizerTest
     @Test
     void CheckJwtClaimsAllAllow ()
     {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("*_all"), "");
+        List<TopicAccess> topicAccess = extractAccesses(List.of("*_all "), "");
         boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.WRITE, new ResourcePattern(ResourceType.TOPIC, "JobNameInputTopic", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(result);
     }
@@ -90,4 +90,24 @@ class CheetahKafkaAuthorizerTest
         Assertions.assertTrue(describeAccess);
         Assertions.assertTrue(readAccess);
     }
+
+    @Test
+    void testNonKafkaRolesFirst ()
+    {
+        List<TopicAccess> topicAccess = extractAccesses(List.of("NotAKafkaRole","Kafka_Demo1_Write", "Kafka_Demo3_Write", "Kafka_Demo2_Write", "Kafka_Demo1_Read"), "Kafka_");
+        boolean describeAccess = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "Demo1", PatternType.LITERAL), 1, false, false));
+        boolean readAccess = checkJwtClaims(topicAccess, new Action(AclOperation.READ, new ResourcePattern(ResourceType.TOPIC, "Demo1", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(describeAccess);
+        Assertions.assertTrue(readAccess);
+    }
+
+    @Test
+    void testTopicWithUnderscore ()
+    {
+        List<TopicAccess> topicAccess = extractAccesses(List.of("Kafka_Demo1_Topic_Read"), "Kafka_");
+        boolean readAccess = checkJwtClaims(topicAccess, new Action(AclOperation.READ, new ResourcePattern(ResourceType.TOPIC, "Demo1_Topic", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(readAccess);
+    }
+
+
 }

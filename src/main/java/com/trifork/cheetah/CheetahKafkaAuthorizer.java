@@ -41,8 +41,18 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
             CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST
         };
 
+        StringBuilder logString = new StringBuilder();
+        logString.append("CheetahKafkaAuthorizer values:\n");
         for (var key : keys) {
             ConfigUtil.putIfNotNull(p, key, configs.get(key));
+
+            if (LOG.isInfoEnabled()) {
+                logString.append("\t").append(key).append(" = ").append(configs.get(key)).append("\n");
+            }
+        }
+
+        if (LOG.isInfoEnabled()) {
+            LOG.info(logString.toString());
         }
 
         return new CheetahConfig(p);
@@ -116,16 +126,32 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
     {
         ArrayList<TopicAccess> result = new ArrayList<>();
 
-
         for (String access : accesses) {
             try {
-                access = access.startsWith(prefix) ? access.substring(prefix.length()) : access;
+                if (!access.startsWith(prefix)) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(String.format("%s does not have the correct prefix", access));
+                    }
+                    continue;
+                }
+                access = access.substring(prefix.length());
 
-                String[] a = access.split("_");
-                result.add(new TopicAccess(a[0], a[1]));
+                int splitIndex = access.lastIndexOf('_');
+
+                if (splitIndex == -1) {
+                    if (LOG.isInfoEnabled()) {
+                        LOG.info(String.format("%s does not follow correct pattern for topic access", access));
+                    }
+                    continue;
+                }
+
+                String pattern = access.substring(0, splitIndex);
+                String operation = access.substring(splitIndex + 1);
+                result.add(new TopicAccess(pattern, operation));
             } catch (Exception e) {
-                LOG.warn(String.format("Error decoding topics claim: %s", access));
-                LOG.debug(e.getMessage());
+                if (LOG.isInfoEnabled()) {
+                    LOG.info(String.format("Error decoding topics claim: %s %n %s", access, e));
+                }
             }
         }
         return result;
