@@ -124,4 +124,12 @@ class CheetahKafkaAuthorizerTest
         Assertions.assertTrue(readAccess);
     }
 
+    @Test
+    void testIdempotentWriteWithWildcard ()
+    {
+        List<TopicAccess> topicAccess = extractAccesses(List.of("*_all"), "");
+        boolean readAccess = checkJwtClaims(topicAccess, new Action(AclOperation.IDEMPOTENT_WRITE, new ResourcePattern(ResourceType.CLUSTER, "Demo1_Topic", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(readAccess);
+    }
+
 }

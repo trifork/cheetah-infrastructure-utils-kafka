@@ -180,9 +180,9 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
     {
         switch (action.operation()) {
             case READ:
-                return READ.equals(t.operation);
+                return List.of(ANY, ALL, READ).contains(t.operation);
             case DESCRIBE:
-                return List.of(READ, WRITE, DESCRIBE).contains(t.operation);
+                return List.of(ANY, ALL, READ, WRITE, DESCRIBE).contains(t.operation);
             default:
                 return false;
         }
@@ -192,7 +192,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
     {
         switch (action.operation()) {
             case IDEMPOTENT_WRITE:
-                return WRITE.equals(t.operation);
+                return List.of(ANY, ALL, WRITE).contains(t.operation);
             default:
                 return false;
         }
@@ -203,7 +203,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         switch (action.operation()) {
             case DESCRIBE:
                 // WRITE, READ, DELETE and ALTER implicitly allows DESCRIBE
-                return List.of(WRITE, READ, DELETE, ALTER, DESCRIBE, ANY, ALL).contains(t.operation);
+                return List.of(ANY, ALL, WRITE, READ, DELETE, ALTER, DESCRIBE).contains(t.operation);
             default:
                 return List.of(ANY, ALL).contains(t.operation) || action.operation().equals(t.operation);
 
