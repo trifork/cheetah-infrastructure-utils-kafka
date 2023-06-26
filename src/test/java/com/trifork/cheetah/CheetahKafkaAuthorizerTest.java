@@ -8,7 +8,6 @@ import org.apache.kafka.server.authorizer.Action;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
 import java.util.List;
 
 import static com.trifork.cheetah.CheetahKafkaAuthorizer.checkJwtClaims;
@@ -20,7 +19,7 @@ class CheetahKafkaAuthorizerTest
     @Test
     void CheckJwtClaimsAllAllow ()
     {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("*_all "), "");
+        List<TopicAccess> topicAccess = extractAccesses(List.of("*_all"), "");
         boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.WRITE, new ResourcePattern(ResourceType.TOPIC, "JobNameInputTopic", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(result);
     }

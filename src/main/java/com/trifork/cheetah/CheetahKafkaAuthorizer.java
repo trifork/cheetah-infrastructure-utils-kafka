@@ -68,11 +68,6 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
 
         var principal = (OAuthKafkaPrincipal) requestContext.principal();
 
-        for (var a : actions
-        ) {
-            LOG.info(requestContext.clientAddress() + " Requesting action: " + a);
-        }
-
         List<String> accesses;
         try {
             accesses = extractAccessClaim(principal);
@@ -154,8 +149,8 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
                 String operation = access.substring(splitIndex + 1);
                 result.add(new TopicAccess(pattern, operation));
             } catch (Exception e) {
-                if (LOG.isInfoEnabled()) {
-                    LOG.info(String.format("Error decoding topics claim: %s %n %s", access, e));
+                if (LOG.isWarnEnabled()) {
+                    LOG.warn(String.format("Error decoding topics claim: %s %n %s", access, e));
                 }
             }
         }
