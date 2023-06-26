@@ -194,6 +194,6 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
 
     private boolean isClusterOrGroupDescribe ( Action action )
     {
-        return (action.operation().equals(DESCRIBE) || action.operation().equals(CREATE)) && (action.resourcePattern().resourceType().equals(ResourceType.CLUSTER) || action.resourcePattern().resourceType().equals(ResourceType.GROUP));
+        return (action.operation().equals(DESCRIBE) || action.operation().equals(CREATE) || action.operation().equals(READ)) && (action.resourcePattern().resourceType().equals(ResourceType.CLUSTER) || action.resourcePattern().resourceType().equals(ResourceType.GROUP));
     }
 }
