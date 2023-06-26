@@ -68,6 +68,11 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
 
         var principal = (OAuthKafkaPrincipal) requestContext.principal();
 
+        for (var a : actions
+        ) {
+            LOG.info(requestContext.clientAddress() + " Requesting action: " + a);
+        }
+
         List<String> accesses;
         try {
             accesses = extractAccessClaim(principal);
@@ -79,7 +84,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         List<TopicAccess> topicAccesses = extractAccesses(accesses, prefix);
 
         for (Action action : actions) {
-            if (isClusterOrGroup(action) || checkJwtClaims(topicAccesses, action)) {
+            if (isClusterOrGroupDescribe(action) || checkJwtClaims(topicAccesses, action)) {
                 results.add(AuthorizationResult.ALLOWED);
                 continue;
             }
@@ -192,8 +197,8 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         }
     }
 
-    private boolean isClusterOrGroup ( Action action )
+    private boolean isClusterOrGroupDescribe ( Action action )
     {
-        return action.resourcePattern().resourceType().equals(ResourceType.CLUSTER) || action.resourcePattern().resourceType().equals(ResourceType.GROUP);
+        return (action.operation().equals(DESCRIBE) || action.operation().equals(CREATE)) && (action.resourcePattern().resourceType().equals(ResourceType.CLUSTER) || action.resourcePattern().resourceType().equals(ResourceType.GROUP));
     }
 }
