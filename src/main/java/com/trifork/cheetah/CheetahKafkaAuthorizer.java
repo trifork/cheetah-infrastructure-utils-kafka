@@ -139,7 +139,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
 
                 if (splitIndex == -1) {
                     if (LOG.isInfoEnabled()) {
-                        LOG.info(String.format("%s does not follow correct pattern for topic access", access));
+                        LOG.info(String.format("%s does not follow correct pattern for topic access (<prefix>_<topic-name>_<operation>)", access));
                     }
                     continue;
                 }
