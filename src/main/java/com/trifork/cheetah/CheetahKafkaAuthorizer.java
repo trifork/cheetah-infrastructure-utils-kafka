@@ -3,7 +3,6 @@ package com.trifork.cheetah;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import kafka.security.authorizer.AclAuthorizer;
-import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
@@ -41,8 +40,18 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
             CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST
         };
 
+        StringBuilder logString = new StringBuilder();
+        logString.append("CheetahKafkaAuthorizer values:\n");
         for (var key : keys) {
             ConfigUtil.putIfNotNull(p, key, configs.get(key));
+
+            if (LOG.isInfoEnabled()) {
+                logString.append("\t").append(key).append(" = ").append(configs.get(key)).append("\n");
+            }
+        }
+
+        if (LOG.isInfoEnabled()) {
+            LOG.info(logString.toString());
         }
 
         return new CheetahConfig(p);
@@ -69,7 +78,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         List<TopicAccess> topicAccesses = extractAccesses(accesses, prefix);
 
         for (Action action : actions) {
-            if (isClusterOrGroup(action) || checkJwtClaims(topicAccesses, action)) {
+            if (checkJwtClaims(topicAccesses, action)) {
                 results.add(AuthorizationResult.ALLOWED);
                 continue;
             }
@@ -116,16 +125,32 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
     {
         ArrayList<TopicAccess> result = new ArrayList<>();
 
-
         for (String access : accesses) {
             try {
-                access = access.startsWith(prefix) ? access.substring(prefix.length()) : access;
+                if (!access.startsWith(prefix)) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(String.format("%s does not have the correct prefix. Skipping...", access));
+                    }
+                    continue;
+                }
+                access = access.substring(prefix.length());
 
-                String[] a = access.split("_");
-                result.add(new TopicAccess(a[0], a[1]));
+                int splitIndex = access.lastIndexOf('_');
+
+                if (splitIndex == -1) {
+                    if (LOG.isInfoEnabled()) {
+                        LOG.info(String.format("%s does not follow correct pattern for topic access (<prefix>_<topic-name>_<operation>)", access));
+                    }
+                    continue;
+                }
+
+                String pattern = access.substring(0, splitIndex);
+                String operation = access.substring(splitIndex + 1);
+                result.add(new TopicAccess(pattern, operation));
             } catch (Exception e) {
-                LOG.warn(String.format("Error decoding topics claim: %s", access));
-                LOG.debug(e.getMessage());
+                if (LOG.isWarnEnabled()) {
+                    LOG.warn(String.format("Error decoding topics claim: %s %n %s", access, e));
+                }
             }
         }
         return result;
@@ -134,25 +159,55 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
     public static boolean checkJwtClaims ( List<TopicAccess> topicAccesses, Action action )
     {
         for (TopicAccess t : topicAccesses) {
-            // Action must be of type Topic and topic pattern must match
-            if (!action.resourcePattern().resourceType().equals(ResourceType.TOPIC) ||
-                !matchTopicPattern(action, t)) {
-                continue;
-            }
-
-            // ALL and ANY grant access to everything
-            if (List.of(ALL, ANY).contains(t.operation)) return true;
-
-            switch (action.operation()) {
-                case DESCRIBE:
-                    // WRITE, READ, DELETE and ALTER implicitly allows DESCRIBE
-                    if (List.of(WRITE, READ, DELETE, ALTER, DESCRIBE).contains(t.operation)) return true;
+            switch (action.resourcePattern().resourceType()) {
+                case TOPIC:
+                    if (matchTopicPattern(action, t) && checkTopicAccess(t, action)) return true;
+                    break;
+                case CLUSTER:
+                    if (checkClusterAccess(t, action)) return true;
+                    break;
+                case GROUP:
+                    if (checkGroupAccess(t, action)) return true;
+                    break;
                 default:
-                    if (t.operation.equals(action.operation())) return true;
-
+                    break;
             }
         }
         return false;
+    }
+
+    private static boolean checkGroupAccess ( TopicAccess t, Action action )
+    {
+        switch (action.operation()) {
+            case READ:
+                return List.of(ANY, ALL, READ).contains(t.operation);
+            case DESCRIBE:
+                return List.of(ANY, ALL, READ, WRITE, DESCRIBE).contains(t.operation);
+            default:
+                return false;
+        }
+    }
+
+    private static boolean checkClusterAccess ( TopicAccess t, Action action )
+    {
+        switch (action.operation()) {
+            case IDEMPOTENT_WRITE:
+                return List.of(ANY, ALL, WRITE).contains(t.operation);
+            default:
+                return false;
+        }
+    }
+
+    private static boolean checkTopicAccess ( TopicAccess t, Action action )
+    {
+        switch (action.operation()) {
+            case DESCRIBE:
+                // WRITE, READ, DELETE and ALTER implicitly allows DESCRIBE
+                return List.of(ANY, ALL, WRITE, READ, DELETE, ALTER, DESCRIBE).contains(t.operation);
+            default:
+                return List.of(ANY, ALL).contains(t.operation) || action.operation().equals(t.operation);
+
+        }
     }
 
     private static boolean matchTopicPattern ( Action action, TopicAccess t )
@@ -166,8 +221,4 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         }
     }
 
-    private boolean isClusterOrGroup ( Action action )
-    {
-        return action.resourcePattern().resourceType().equals(ResourceType.CLUSTER) || action.resourcePattern().resourceType().equals(ResourceType.GROUP);
-    }
 }
