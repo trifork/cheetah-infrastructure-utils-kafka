@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
   push:
-    branches: ["main", "release/**"]
+    branches: [ "main", "release/**", "strimzi**" ]
     tags:
       - "v*"
   pull_request:
@@ -45,4 +45,4 @@ jobs:
           github_run_id: ${{ github.run_id }}
           base_image: ${{ env.BASE_IMAGE }}
           push_image: true
-          gitlab_token: ${{ vars.GITLAB_TOKEN }}
+#          gitlab_token: ${{ vars.GITLAB_TOKEN }}
