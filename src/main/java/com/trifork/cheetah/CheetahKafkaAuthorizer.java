@@ -129,7 +129,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
             try {
                 if (!access.startsWith(prefix)) {
                     if (LOG.isDebugEnabled()) {
-                        LOG.debug(String.format("%s does not have the correct prefix", access));
+                        LOG.debug(String.format("%s does not have the correct prefix. Skipping...", access));
                     }
                     continue;
                 }
