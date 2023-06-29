@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.apache.kafka.common.acl.AclOperation.*;
 
@@ -30,8 +31,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         topicClaimName = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_NAME, "topics");
         prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "");
         isClaimList = config.getValueAsBoolean(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST, false);
-        List<String> readonlySuperUsersStrings = List.of(config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_READONLY_SUPERUSERS, "").split(","));
-        readonlySuperUsersStrings.forEach(t -> readonlySuperUsers.add(new KafkaPrincipal(t.split(":")[0], t.split(":")[1])));
+        readonlySuperUsers = Arrays.stream(config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_READONLY_SUPERUSERS, "").split(",")).map(t -> new KafkaPrincipal(t.split(":")[0], t.split(":")[1])).collect(Collectors.toList());
         super.configure(configs);
     }
 
