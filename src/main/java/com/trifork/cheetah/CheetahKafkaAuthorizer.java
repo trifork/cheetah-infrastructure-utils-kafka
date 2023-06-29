@@ -3,6 +3,7 @@ package com.trifork.cheetah;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import kafka.security.authorizer.AclAuthorizer;
+import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
@@ -18,6 +19,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
     static final Logger LOG = LoggerFactory.getLogger(CheetahKafkaAuthorizer.class.getName());
     private String topicClaimName;
     private String prefix;
+    private List<KafkaPrincipal> readonlySuperUsers = new ArrayList<>();
     private boolean isClaimList;
 
     @Override
@@ -28,6 +30,8 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         topicClaimName = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_NAME, "topics");
         prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "");
         isClaimList = config.getValueAsBoolean(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST, false);
+        List<String> readonlySuperUsersStrings = List.of(config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_READONLY_SUPERUSERS, "").split(","));
+        readonlySuperUsersStrings.forEach(t -> readonlySuperUsers.add(new KafkaPrincipal(t.split(":")[0], t.split(":")[1])));
         super.configure(configs);
     }
 
@@ -37,7 +41,8 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         String[] keys = {
             CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_NAME,
             CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX,
-            CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST
+            CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST,
+            CheetahConfig.CHEETAH_AUTHORIZATION_READONLY_SUPERUSERS
         };
 
         StringBuilder logString = new StringBuilder();
@@ -115,10 +120,27 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
             if (LOG.isDebugEnabled()) {
                 LOG.debug(String.format("Superuser: %s", requestContext.principal().getName()));
             }
+            // Is a superuser which can are allowed anything
             return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
+        } else if (readonlySuperUsers.contains(requestContext.principal())) {
+            // Is a read-only superuser which can are allowed READ, DESCRIBE and DESCRIBE_CONFIGS
+            return allowReadActions(actions);
         } else {
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
+    }
+
+    private List<AuthorizationResult> allowReadActions ( List<Action> actions )
+    {
+        List<AuthorizationResult> results = new ArrayList<>(actions.size());
+        for (var a : actions) {
+            if (List.of(READ, DESCRIBE, DESCRIBE_CONFIGS).contains(a.operation())) {
+                results.add(AuthorizationResult.ALLOWED);
+            } else {
+                results.add(AuthorizationResult.DENIED);
+            }
+        }
+        return results;
     }
 
     public static List<TopicAccess> extractAccesses ( List<String> accesses, String prefix )
