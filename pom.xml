@@ -6,7 +6,7 @@
 
     <groupId>com.trifork.cheetah</groupId>
     <artifactId>cheetah-kafka-authorizer</artifactId>
-    <version>strimzi-0.35.1-kafka-3.3.2-trifork-1.4.0</version>
+    <version>strimzi-0.35.1-kafka-3.3.2-trifork-1.4.1</version>
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
