@@ -58,7 +58,7 @@ services:
     platform: linux/amd64
     container_name: kafka-client
     volumes:
-      - ./config/kafkaconfig.sh:/etc/config/kafkaconfig.sh
+      - ./config/integrationtest.sh:/etc/config/integrationtest.sh
       - ./config/kafka/kafkasetup.config:/etc/config/kafkasetup.config
     command: "bash /etc/config/kafkaconfig.sh"
     depends_on:
