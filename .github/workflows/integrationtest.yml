@@ -28,6 +28,7 @@ jobs:
         run: mvn -B package --file pom.xml
 
       - name: "Test kafka plugin"
+        shell: bash
         run: docker compose up --build --abort-on-container-exit
         working-directory: integrationtests/
         env:
