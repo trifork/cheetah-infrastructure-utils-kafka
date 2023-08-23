@@ -7,7 +7,6 @@ TIMEOUT="60s"
 echo "Waiting for Kafka to be ready..."
 cub kafka-ready -b $KAFKA__URL 1 20 #expected_brokers timeout_seconds
 
-
 echo "Creating topics with retention set to 1 day"
 kafka-topics --create --if-not-exists --bootstrap-server $KAFKA__URL --partitions 1 --replication-factor 1 --topic $topic --config retention.ms=86400000
 kafka-configs --bootstrap-server $KAFKA__URL --entity-type topics --entity-name $topic --alter --add-config retention.ms=86400000
@@ -37,7 +36,7 @@ output=$(timeout $TIMEOUT bin/kafka-console-consumer.sh \
    --consumer-property sasl.mechanism="OAUTHBEARER" \
    --consumer-property security.protocol=SASL_PLAINTEXT \
    --consumer-property sasl.jaas.config="org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;" \
-   --bootstrap-server kafka:19092 \
+   --bootstrap-server $KAFKA__URL \
    --topic $TOPIC_NAME\
    --from-beginning)
 
