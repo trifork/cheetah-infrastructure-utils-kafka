@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "Waiting for Kafka to be ready..."
-cub kafka-ready -b "$KAFKA__URL" 1 20 #expected_brokers timeout_seconds
+#echo "Waiting for Kafka to be ready..."
+#cub kafka-ready -b "$KAFKA__URL" 1 20 #expected_brokers timeout_seconds
 
 echo "Creating topics with retention set to 1 day"
-kafka-topics --create --if-not-exists --bootstrap-server "$KAFKA__URL" --partitions 1 --replication-factor 1 --topic "$TOPIC_NAME" --config retention.ms=86400000
-kafka-configs --bootstrap-server "$KAFKA__URL" --entity-type topics --entity-name "$TOPIC_NAME" --alter --add-config retention.ms=86400000
+bin/kafka-topics.sh --create --if-not-exists --bootstrap-server "kafka:19093" --partitions 1 --replication-factor 1 --topic "$TOPIC_NAME" --config retention.ms=86400000
+bin/kafka-configs.sh --bootstrap-server "kafka:19093" --entity-type topics --entity-name "$TOPIC_NAME" --alter --add-config retention.ms=86400000
 echo "Creating topics done"
 
 echo "Publishing some messages"

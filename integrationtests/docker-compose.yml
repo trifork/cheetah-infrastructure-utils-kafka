@@ -3,7 +3,7 @@ version: "2.1"
 services:
   cheetah.oauth.simulator:
     hostname: cheetahoauthsimulator
-    image: ${DOCKER_REGISTRY-}cheetah-oauth-simulator:latest
+    image: ghcr.io/trifork/cheetah-oauth-simulator:latest
     platform: linux/amd64
     environment:
       #- ASPNETCORE_ENVIRONMENT=Development
@@ -20,10 +20,10 @@ services:
     mem_limit: 512m
 
   kafka:
-    image: ${DOCKER_REGISTRY-}cheetah-infrastructure-utils-kafka:integrationtest
+    #image: cheetah-infrastructure-utils-kafka:integrationtest
     build:
       context: ../
-      dockerfile: Dockerfile
+      dockerfile: ./integrationtests/Dockerfile
     platform: linux/amd64
     hostname: kafka
     mem_limit: 1024m
@@ -53,14 +53,15 @@ services:
       timeout: 10s
       retries: 10
 
-  kafka-client:
-    image: quay.io/strimzi/kafka:0.33.2-kafka-3.3.2
+  kafka-testclient:
+    image: quay.io/strimzi/kafka:0.33.2-kafka-3.2.3
     platform: linux/amd64
     container_name: kafka-client
     volumes:
       - ./integrationtest.sh:/etc/config/integrationtest.sh
       - ./config/kafka/kafkasetup.config:/etc/config/kafkasetup.config
     command: "bash /etc/config/integrationtest.sh"
+    restart: no
     depends_on:
       kafka:
         condition: service_healthy
