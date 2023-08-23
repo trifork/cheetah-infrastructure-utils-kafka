@@ -13,10 +13,11 @@ kafka-topics --create --if-not-exists --bootstrap-server $KAFKA__URL --partition
 kafka-configs --bootstrap-server $KAFKA__URL --entity-type topics --entity-name $topic --alter --add-config retention.ms=86400000
 echo "Creating topics done"
 
+echo "Publishing some messages"
 template=device%s:'{"deviceId":"%s","timestamp":"%s","value":%d}\n'
-while [ true ]; do
-   echo "Inserted message"
-   counter=$((($RANDOM % 20) + 1))
+while [ $COUNTER -lt $COUNTER_STOP ]; do
+   echo "Inserting message #$COUNTER into $TOPIC_NAME"
+   json_string=$(printf "$template" "$COUNTER" "$COUNTER_STOP" "$(date -Ins)" "$RANDOM")
    json_string=$(printf "$template" "$counter" "$counter" "$(date -Ins)" $RANDOM)
    echo $json_string | bin/kafka-console-producer.sh \
       --producer-property sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler \
@@ -30,6 +31,7 @@ while [ true ]; do
       --property key.separator=:
    ((COUNTER++))
 done
+
 
 output=$(timeout $TIMEOUT bin/kafka-console-consumer.sh \
    --consumer-property sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler \

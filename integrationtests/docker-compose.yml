@@ -77,3 +77,7 @@ services:
       OAUTH_CLIENT_SECRET: test
       OAUTH_CLIENT_ID: kafka
       OAUTH_TOKEN_ENDPOINT_URI: http://cheetahoauthsimulator/oauth2/token
+
+      # How much data to generate
+      COUNTER: 0
+      COUNTER_STOP: 3
