@@ -60,7 +60,7 @@ services:
     volumes:
       - ./config/integrationtest.sh:/etc/config/integrationtest.sh
       - ./config/kafka/kafkasetup.config:/etc/config/kafkasetup.config
-    command: "bash /etc/config/kafkaconfig.sh"
+    command: "bash /etc/config/integrationtest.sh"
     depends_on:
       kafka:
         condition: service_healthy
