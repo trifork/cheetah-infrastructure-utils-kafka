@@ -9,7 +9,7 @@ bin/kafka-topics.sh --create --if-not-exists --bootstrap-server "kafka:19093" --
 bin/kafka-configs.sh --bootstrap-server "kafka:19093" --entity-type topics --entity-name "$TOPIC_NAME" --alter --add-config retention.ms=86400000
 echo "Creating topics done"
 
-echo "Publishing some messages"
+echo "Publishing $COUNTER_STOP message(s)"
 template=device%s:'{"deviceId":"%s","timestamp":"%s","value":%d}\n'
 while [ "$COUNTER" -lt "$COUNTER_STOP" ]; do
    echo "Inserting message #$COUNTER into $TOPIC_NAME"
@@ -23,7 +23,12 @@ while [ "$COUNTER" -lt "$COUNTER_STOP" ]; do
       --bootstrap-server "$KAFKA__URL" \
       --property value.serializer=custom.class.serialization.JsonSerializer \
       --property parse.key=true \
-      --property key.separator=:
+      --property key.separator=: \
+      --max-block-ms 10000
+      #--sync \
+      #--request-required-acks 1 \
+      #--request-timeout-ms 120 \
+      #--message-send-max-retries 0
    ((COUNTER++))
 done
 
