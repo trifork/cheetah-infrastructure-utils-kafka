@@ -39,3 +39,4 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.PACKAGE_PAT }}
+          DOCKER_REGISTRY: ghcr.io/trifork/
