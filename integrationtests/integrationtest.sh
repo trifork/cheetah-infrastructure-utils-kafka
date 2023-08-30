@@ -30,7 +30,7 @@ while [ "$COUNTER" -lt "$COUNTER_STOP" ]; do
       #--request-required-acks 1 \
       #--request-timeout-ms 120 \
       #--message-send-max-retries 0
-   ((COUNTER++))
+   let ++COUNTER # ++ must come first, otherwise let exits with code 1
 done
 
 echo "Consuming some messages"
