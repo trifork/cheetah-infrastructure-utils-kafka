@@ -14,6 +14,7 @@ template=device%s:'{"deviceId":"%s","timestamp":"%s","value":%d}\n'
 while [ "$COUNTER" -lt "$COUNTER_STOP" ]; do
    echo "Inserting message #$COUNTER into $TOPIC_NAME"
    json_string=$(printf "$template" "$COUNTER" "$COUNTER_STOP" "$(date -Ins)" "$RANDOM")
+   echo "Inserting message $json_string into $TOPIC_NAME"
    echo "$json_string" | bin/kafka-console-producer.sh \
       --producer-property sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler \
       --producer-property sasl.mechanism="OAUTHBEARER" \
