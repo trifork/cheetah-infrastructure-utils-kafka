@@ -7,6 +7,8 @@ on:
       - cron:  '30 0 * * *'
   pull_request:
     branches: ["main", "release/**"]
+  push:
+    branches: [ "main", "release/**" ]
 
 jobs:
   integrationtest:
