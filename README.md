@@ -30,3 +30,12 @@ To use the Authorizer package the project using maven:
 Then
 
 `docker build . -t my-kafka`
+
+## Logging
+The following types of info is logged on different log levels:
+### DEBUG
+* SuperUsers(e.g. kafka-entity-topic-operator, kafka-exporter) accesses.
+### INFO
+* JWT claim has entries which does not follow correct pattern for topic access <prefix>_<topic-name>_<operation>.
+### WARN
+* JWT does not have the required claim.
