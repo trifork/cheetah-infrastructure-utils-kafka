@@ -47,6 +47,8 @@ jobs:
           push_image: true
           upload_image: 'false'
           gitlab_token: ${{ github.ref_type == 'tag' && vars.GITLAB_TOKEN || '' }}
+          flink_image_version: ''
+          jar_name_pattern: ''
 
       - name: "Export for scanning"
         uses: trifork/cheetah-infrastructure-utils/.github/actions/build-image@main
@@ -61,6 +63,9 @@ jobs:
           push_image: 'false'
           upload_image: 'true'
           gitlab_token: ${{ github.ref_type == 'tag' && vars.GITLAB_TOKEN || '' }}
+          architecture: linux/amd64
+          flink_image_version: ''
+          jar_name_pattern: ''
           
   trivy-container-scan:
     name: trivy (container scan)
