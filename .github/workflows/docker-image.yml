@@ -48,7 +48,7 @@ jobs:
           upload_image: 'false'
           gitlab_token: ${{ github.ref_type == 'tag' && vars.GITLAB_TOKEN || '' }}
 
-      - name: "Build and push"
+      - name: "Export for scanning"
         uses: trifork/cheetah-infrastructure-utils/.github/actions/build-image@main
         with:
           read_package_pat: ${{ secrets.PACKAGE_PAT }} # we need this, as GITHUB_TOKEN only have permission to its own repo
@@ -58,8 +58,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_run_id: ${{ github.run_id }}
           base_image: ${{ env.BASE_IMAGE }}
-          push_image: 'true'
-          upload_image: 'false'
+          push_image: 'false'
+          upload_image: 'true'
           gitlab_token: ${{ github.ref_type == 'tag' && vars.GITLAB_TOKEN || '' }}
           
   trivy-container-scan:
