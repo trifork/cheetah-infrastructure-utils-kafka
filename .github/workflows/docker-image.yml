@@ -108,7 +108,7 @@ jobs:
           file: 'trivy-container-results.sarif'
           scan_type: SARIF # Trivy Scan
           engagement_name: import-container-scan
-          product_name: ${{ env.IMAGE_NAME }}
+          product_name: ${{ github.repository }}
           branch_tag: ${{ github.ref_name }}
           #commit_hash: ${{ github.sha }}
           #minimum_severity: Info, Low, Medium, High, Critical. Default value: Info
