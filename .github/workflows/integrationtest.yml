@@ -1,19 +1,40 @@
-name: Create and publish Cheetah Kafka Docker Image
+name: E2E
 
 on:
   workflow_dispatch:
   schedule:
-      # * is a special character in YAML so you have to quote this string
-      - cron:  '30 0 * * *'
+    # * is a special character in YAML so you have to quote this string
+    - cron: "30 0 * * *"
   pull_request:
     branches: ["main", "release/**"]
   push:
-    branches: [ "main", "release/**" ]
+    branches: ["main", "release/**"]
 
 jobs:
-  integrationtest:
+  should-run: # seperate step to support ci/cd status checks
+    runs-on: ubuntu-latest
+    outputs:
+      tag-check: ${{ steps.tag-check.outputs.value }}
+      event-name-check: ${{ steps.event-name-check.outputs.value }}
+
+    steps:
+      # the pull request contains the 'e2e-test' label
+      - name: Tag check
+        id: tag-check
+        if: ${{ contains(github.event.pull_request.labels.*.name, 'e2e-test') && !contains(github.event.pull_request.labels.*.name, 'blocked') }}
+        run: echo "value=true" >> "$GITHUB_OUTPUT"
+
+      # not started from a pull-request
+      - name: Check for specific label
+        id: event-name-check
+        if: ${{github.event_name != 'pull_request'}}
+        run: echo "value=true" >> "$GITHUB_OUTPUT"
+
+  e2e-test:
+    needs: should-run
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    if: ${{ needs.should-run.outputs.event-name-check == 'true' || needs.should-run.outputs.tag-check == 'true' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
