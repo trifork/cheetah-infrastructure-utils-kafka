@@ -17,3 +17,9 @@ updates:
       # Check for updates to maven every week
       interval: "weekly"
     open-pull-requests-limit: 0
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      # Check for updates to docker every week
+      interval: "weekly"
+    open-pull-requests-limit: 0
