@@ -7,6 +7,14 @@ on:
     - cron: "30 0 * * *"
   pull_request:
     branches: ["main", "release/**"]
+    types:
+      - labeled
+      - opened
+      - edited
+      - ready_for_review
+      - auto_merge_enabled
+      - synchronize
+      - reopened
   push:
     branches: ["main", "release/**"]
 
