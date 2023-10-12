@@ -69,8 +69,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PACKAGE_PAT }}
           DOCKER_REGISTRY: ghcr.io/trifork/
 
-      - name: print logs
-        if: ${{ job.status == 'failure' }}
+      - name: Print logs
+        if: failure()
         shell: bash
         working-directory: integrationtests/
         run: docker compose logs
