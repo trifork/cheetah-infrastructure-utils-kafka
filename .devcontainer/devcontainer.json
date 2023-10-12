@@ -30,7 +30,9 @@
 				"ms-azuretools.vscode-docker",
 				"VisualStudioExptTeam.vscodeintellicode",
 				"vscjava.vscode-maven",
-				"vscjava.vscode-java-dependency"
+				"vscjava.vscode-java-dependency",
+				"github.vscode-github-actions",
+				"GitHub.copilot"
 			]
 		}
 	},

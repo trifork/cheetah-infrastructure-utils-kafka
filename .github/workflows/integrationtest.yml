@@ -10,6 +10,7 @@ on:
   push:
     branches: ["main", "release/**"]
 
+# act workflow_dispatch -s GITHUB_TOKEN -W .github/workflows/integrationtest.yml
 jobs:
   should-run: # seperate step to support ci/cd status checks
     runs-on: ubuntu-latest
@@ -45,7 +46,7 @@ jobs:
           java-version: "11"
           distribution: "temurin"
           server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
-          settings-path: ${{ inputs.settings-path }} # location for the settings.xml file
+          #settings-path: ${{ inputs.settings-path }} # location for the settings.xml file
           cache: "maven"
 
       - name: Package with Maven
@@ -61,9 +62,15 @@ jobs:
 
       - name: "Test kafka plugin"
         shell: bash
-        run: docker compose up --build --abort-on-container-exit
+        run: docker compose up --build --abort-on-container-exit --quiet-pull
         working-directory: integrationtests/
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.PACKAGE_PAT }}
           DOCKER_REGISTRY: ghcr.io/trifork/
+
+      - name: print logs
+        if: ${{ job.status == 'failure' }}
+        shell: bash
+        working-directory: integrationtests/
+        run: docker compose logs

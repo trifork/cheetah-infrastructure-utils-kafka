@@ -29,3 +29,6 @@ RUN if [ ! -d "/docker-java-home" ]; then ln -s "${JAVA_HOME}" /docker-java-home
 
 # [Optional] Uncomment this line to install global node packages.
 # RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
+
+# Install github act
+RUN curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
