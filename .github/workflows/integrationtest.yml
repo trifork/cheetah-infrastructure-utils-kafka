@@ -62,7 +62,9 @@ jobs:
 
       - name: "Test kafka plugin"
         shell: bash
-        run: docker compose up --build --abort-on-container-exit --quiet-pull
+        run: |
+          docker compose pull -q
+          docker compose up --build --abort-on-container-exit
         working-directory: integrationtests/
         env:
           GITHUB_ACTOR: ${{ github.actor }}
@@ -70,7 +72,7 @@ jobs:
           DOCKER_REGISTRY: ghcr.io/trifork/
 
       - name: Print logs
-        if: failure()
+        if: ${{ failure() }}
         shell: bash
         working-directory: integrationtests/
         run: docker compose logs

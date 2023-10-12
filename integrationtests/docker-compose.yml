@@ -3,17 +3,22 @@ version: "2.1"
 services:
   cheetah.oauth.simulator:
     hostname: cheetahoauthsimulator
-    image: ghcr.io/trifork/cheetah-oauth-simulator:latest
+    image: ghcr.io/trifork/cheetah-oauth-simulator:1.7.2
     platform: linux/amd64
     environment:
       #- ASPNETCORE_ENVIRONMENT=Development
       - OAuth__Mode=Asymmetric
       - Simulator__DefaultKafkaRole=*_all
+
   zookeeper:
     image: quay.io/strimzi/kafka:0.33.2-kafka-3.2.3
     platform: linux/amd64
     command:
-      ["sh", "-c", "bin/zookeeper-server-start.sh config/zookeeper.properties"]
+      [
+        "sh",
+        "-c",
+        "bin/zookeeper-server-start.sh config/zookeeper.properties"
+      ]
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       LOG_DIR: /tmp/logs
@@ -31,7 +36,7 @@ services:
       [
         "sh",
         "-c",
-        "bin/kafka-server-start.sh /opt/kafka/custom-config/server.properties",
+        "bin/kafka-server-start.sh /opt/kafka/custom-config/server.properties"
       ]
     depends_on:
       zookeeper:
@@ -76,7 +81,7 @@ services:
       TIMEOUT: "${JOB_TIMEOUT:-60s}" # How long the task has to complete
       OAUTH_CLIENT_SECRET: test
       OAUTH_CLIENT_ID: kafka
-      OAUTH_TOKEN_ENDPOINT_URI: http://cheetahoauthsimulator/oauth2/token
+      OAUTH_TOKEN_ENDPOINT_URI: http://cheetahoauthsimulator:80/oauth2/token
 
       # How much data to generate
       COUNTER: 0
