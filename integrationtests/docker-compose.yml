@@ -3,7 +3,7 @@ version: "2.1"
 services:
   cheetah.oauth.simulator:
     hostname: cheetahoauthsimulator
-    image: ghcr.io/trifork/cheetah-oauth-simulator:1.8.4
+    image: ghcr.io/trifork/cheetah-oauth-simulator:1.8.5
     platform: linux/amd64
     environment:
       #- ASPNETCORE_ENVIRONMENT=Development
