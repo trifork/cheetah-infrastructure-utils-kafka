@@ -14,24 +14,6 @@ Access is expressed through claims in a JWT with the following pattern:
 
 ## Workflow
 
-```plantuml:md-sample-sequence
-@startuml
-actor Foo123
-boundary Foo2
-control Foo3
-entity Foo4
-database Foo5
-collections Foo6
-Foo1 -> Foo2 : To boundary
-Foo1 -> Foo3 : To control
-Foo1 -> Foo4 : To entity
-Foo1 -> Foo5 : To database
-Foo1 -> Foo6 : To collections
-@enduml
-```
-
-![](./docs/md-sample-sequence.svg)
-
 Workflow for CheetahKafkaAuthorizer:
 
 ```plantuml:cheetahkafkaauthorizer-workflow
@@ -61,7 +43,7 @@ stop
 @enduml
 ```
 
-![](./cheetahkafkaauthorizer-workflow.svg)
+![](./docs/cheetahkafkaauthorizer-workflow.svg)
 
 
 # Deployment
