@@ -12,6 +12,40 @@ Access is expressed through claims in a JWT with the following pattern:
 }
 ```
 
+## Workflow
+
+Workflow for CheetahKafkaAuthorizer:
+
+```plantuml:cheetahkafkaauthorizer-workflow
+@startuml
+title CheetahKafkaAuthorizer Workflow
+
+start
+
+:Check if request principal is an OAuthKafkaPrincipal?;
+if (Yes) then (Yes)
+  :Extract access claims from OAuthKafkaPrincipal;
+  :Extract topic accesses based on access claims and prefix;
+  repeat
+    :Iterate over the list of actions to authorize;
+    :Check if JWT claims match the action;
+    if (Matched) then (Matched)
+      :Allow access;
+    else (Not Matched)
+      :Deny access;
+    endif
+  repeat while (More actions to authorize?);
+else (No)
+  :Handle super users and return results;
+endif
+
+stop
+@enduml
+```
+
+![](./docs/cheetahkafkaauthorizer-workflow.svg)
+
+
 # Deployment
 
 Configure the Claim in JWT to look for topic access by setting:
