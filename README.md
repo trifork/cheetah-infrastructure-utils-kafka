@@ -30,7 +30,7 @@ Foo1 -> Foo6 : To collections
 @enduml
 ```
 
-![](./md-sample-sequence.svg)
+![](./docs/md-sample-sequence.svg)
 
 Workflow for CheetahKafkaAuthorizer:
 
