@@ -16,9 +16,9 @@ Access is expressed through claims in a JWT with the following pattern:
 
 Workflow for CheetahKafkaAuthorizer:
 
-```
+```plantuml:cheetahkafkaauthorizer-workflow
 @startuml
-title Describe CheetahKafkaAuthorizer Workflow
+title CheetahKafkaAuthorizer Workflow
 
 start
 
@@ -43,6 +43,7 @@ stop
 @enduml
 ```
 
+![](./cheetahkafkaauthorizer-workflow.svg)
 
 
 # Deployment
