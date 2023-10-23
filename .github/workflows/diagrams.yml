@@ -10,7 +10,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
-
+  actions: write
+  
 jobs:
   generate_plantuml:
     runs-on: ubuntu-latest
