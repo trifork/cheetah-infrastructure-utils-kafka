@@ -1,8 +1,11 @@
 name: generate plantuml
 on:
-  pull_request:
-    branches:    
-      - main
+  #pull_request:
+  #  branches:    
+  #    - main
+  push:
+    branches:
+      - "**"
 
 permissions:
   contents: write
