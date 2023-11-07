@@ -99,13 +99,13 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer
         List<String> result = new ArrayList<>();
         if (isClaimList) {
             var jwt = principal.getJwt();
-            var topicClaim = jwt.getJSON().get(topicClaimName);
+            var topicClaim = jwt.getClaimsJSON().get(topicClaimName);
             var iterator = topicClaim.elements();
             while (iterator.hasNext()) {
                 result.add(iterator.next().asText());
             }
         } else {
-            result = Arrays.asList(principal.getJwt().getJSON().get(topicClaimName).asText().split(","));
+            result = Arrays.asList(principal.getJwt().getClaimsJSON().get(topicClaimName).asText().split(","));
         }
         return result;
     }
