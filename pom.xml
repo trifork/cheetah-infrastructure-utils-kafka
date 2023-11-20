@@ -6,20 +6,20 @@
 
     <groupId>com.trifork.cheetah</groupId>
     <artifactId>cheetah-kafka-authorizer</artifactId>
-    <version>strimzi-0.38.0-kafka-3.6.0-trifork-1.5.0</version>
+    <version>strimzi-0.37.0-kafka-3.4.0-trifork-1.4.0-upgrade</version>
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <git.repository>trifork/cheetah-infrastructure-utils-kafka</git.repository>
-        <strimzi.kafka.oauth.version>0.14.0</strimzi.kafka.oauth.version>
+        <strimzi.kafka.oauth.version>0.13.0</strimzi.kafka.oauth.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.13</artifactId>
-            <version>3.6.0</version>
+            <version>3.4.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
