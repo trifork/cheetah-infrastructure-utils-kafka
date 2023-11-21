@@ -10,7 +10,7 @@ COPY src ./src
 # Build
 RUN mvn -B package --file pom.xml
 
-FROM quay.io/strimzi/kafka:0.38.0-kafka-3.6.0
+FROM quay.io/strimzi/kafka:0.38.0-kafka-3.5.1
 
 USER root:root
 COPY --from=build /app/target/cheetah-kafka-authorizer*.jar /opt/kafka/libs/cheetah-kafka-authorizer.jar
