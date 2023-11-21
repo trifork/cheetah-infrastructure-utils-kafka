@@ -11,7 +11,7 @@ services:
       - Simulator__DefaultKafkaRole=*_all
 
   zookeeper:
-    image: quay.io/strimzi/kafka:0.38.0-kafka-3.6.0
+    image: quay.io/strimzi/kafka:0.37.0-kafka-3.5.1
     platform: linux/amd64
     command:
       [
@@ -59,7 +59,7 @@ services:
       retries: 10
 
   kafka-testclient:
-    image: quay.io/strimzi/kafka:0.38.0-kafka-3.6.0
+    image: quay.io/strimzi/kafka:0.37.0-kafka-3.5.1
     platform: linux/amd64
     container_name: kafka-client
     volumes:
