@@ -6,7 +6,6 @@
 		"dockerfile": "Dockerfile",
 		"args": {
 			"java.home": "/docker-java-home",
-			"VARIANT": "11-bullseye",
 			// Options
 			"MAVEN_VERSION": "3.6.3",
 			"INSTALL_GRADLE": "false"

@@ -10,126 +10,139 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.trifork.cheetah.CheetahKafkaAuthorizer.checkJwtClaims;
-import static com.trifork.cheetah.CheetahKafkaAuthorizer.extractAccesses;
+import static com.trifork.cheetah.CheetahKafkaAuthorizer.checkClusterJwtClaims;
+import static com.trifork.cheetah.CheetahKafkaAuthorizer.checkTopicJwtClaims;
+import static com.trifork.cheetah.CheetahKafkaAuthorizer.extractTopicAccesses;
+import static com.trifork.cheetah.CheetahKafkaAuthorizer.extractClusterAccesses;
 
-class CheetahKafkaAuthorizerTest
-{
+class CheetahKafkaAuthorizerTest {
 
     @Test
-    void CheckJwtClaimsAllAllow ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("*_all"), "");
-        boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.WRITE, new ResourcePattern(ResourceType.TOPIC, "JobNameInputTopic", PatternType.LITERAL), 1, false, false));
+    void CheckJwtClaimsAllAllow() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("*_all"), "");
+        boolean result = checkTopicJwtClaims(topicAccess, new Action(AclOperation.WRITE,
+                new ResourcePattern(ResourceType.TOPIC, "JobNameInputTopic", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(result);
     }
 
     @Test
-    void testCheckJwtClaimsAllOneTopicAllow ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("MyTopic*_All"), "");
-        boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.WRITE, new ResourcePattern(ResourceType.TOPIC, "MyTopicTest", PatternType.LITERAL), 1, false, false));
+    void testCheckJwtClaimsAllOneTopicAllow() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("MyTopic*_All"), "");
+        boolean result = checkTopicJwtClaims(topicAccess, new Action(AclOperation.WRITE,
+                new ResourcePattern(ResourceType.TOPIC, "MyTopicTest", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(result);
     }
 
     @Test
-    void testCheckJwtClaimsAllOneTopicDeny ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("MyTopic*_read"), "");
-        boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.WRITE, new ResourcePattern(ResourceType.TOPIC, "MyTopicTest", PatternType.LITERAL), 1, false, false));
+    void testCheckJwtClaimsAllOneTopicDeny() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("MyTopic*_read"), "");
+        boolean result = checkTopicJwtClaims(topicAccess, new Action(AclOperation.WRITE,
+                new ResourcePattern(ResourceType.TOPIC, "MyTopicTest", PatternType.LITERAL), 1, false, false));
         Assertions.assertFalse(result);
     }
 
     @Test
-    void testCheckJwtClaimsAllOneTopic ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("MyTopic*_all"), "");
-        boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "NotMyTopic", PatternType.LITERAL), 1, false, false));
+    void testCheckJwtClaimsAllOneTopic() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("MyTopic*_all"), "");
+        boolean result = checkTopicJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE,
+                new ResourcePattern(ResourceType.TOPIC, "NotMyTopic", PatternType.LITERAL), 1, false, false));
         Assertions.assertFalse(result);
     }
 
     @Test
-    void testCheckJwtClaimsDeny ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("MyTopic*_describe"), "");
-        boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "NotMyTopic", PatternType.LITERAL), 1, false, false));
+    void testCheckJwtClaimsDeny() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("MyTopic*_describe"), "");
+        boolean result = checkTopicJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE,
+                new ResourcePattern(ResourceType.TOPIC, "NotMyTopic", PatternType.LITERAL), 1, false, false));
         Assertions.assertFalse(result);
     }
 
     @Test
-    void testCheckJwtClaimsDenyWithoutWildcard ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("MyTopic_describe"), "");
-        boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "MyTopicTest", PatternType.LITERAL), 1, false, false));
+    void testCheckJwtClaimsDenyWithoutWildcard() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("MyTopic_describe"), "");
+        boolean result = checkTopicJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE,
+                new ResourcePattern(ResourceType.TOPIC, "MyTopicTest", PatternType.LITERAL), 1, false, false));
         Assertions.assertFalse(result);
     }
 
     @Test
-    void testCheckJwtClaimsAllowWithStartWildcard ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("*MyTopic_describe"), "");
-        boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "TestMyTopic", PatternType.LITERAL), 1, false, false));
+    void testCheckJwtClaimsAllowWithStartWildcard() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("*MyTopic_describe"), "");
+        boolean result = checkTopicJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE,
+                new ResourcePattern(ResourceType.TOPIC, "TestMyTopic", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(result);
     }
 
     @Test
-    void testClaimWithPrefix ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("Kafka_*MyTopic_describe"), "Kafka_");
-        boolean result = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "TestMyTopic", PatternType.LITERAL), 1, false, false));
+    void testClaimWithPrefix() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("Kafka_*MyTopic_describe"), "Kafka_");
+        boolean result = checkTopicJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE,
+                new ResourcePattern(ResourceType.TOPIC, "TestMyTopic", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(result);
     }
 
     @Test
-    void testClaimsWithPrefix ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("Kafka_Demo1_Write", "Kafka_Demo3_Write", "Kafka_Demo2_Write", "Kafka_Demo1_Read"), "Kafka_");
-        boolean describeAccess = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "Demo1", PatternType.LITERAL), 1, false, false));
-        boolean readAccess = checkJwtClaims(topicAccess, new Action(AclOperation.READ, new ResourcePattern(ResourceType.TOPIC, "Demo1", PatternType.LITERAL), 1, false, false));
+    void testClaimsWithPrefix() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(
+                List.of("Kafka_Demo1_Write", "Kafka_Demo3_Write", "Kafka_Demo2_Write", "Kafka_Demo1_Read"), "Kafka_");
+        boolean describeAccess = checkTopicJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE,
+                new ResourcePattern(ResourceType.TOPIC, "Demo1", PatternType.LITERAL), 1, false, false));
+        boolean readAccess = checkTopicJwtClaims(topicAccess, new Action(AclOperation.READ,
+                new ResourcePattern(ResourceType.TOPIC, "Demo1", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(describeAccess);
         Assertions.assertTrue(readAccess);
     }
 
     @Test
-    void testNonKafkaRolesFirst ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("NotAKafkaRole", "Kafka_Demo1_Write", "Kafka_Demo3_Write", "Kafka_Demo2_Write", "Kafka_Demo1_Read"), "Kafka_");
-        boolean describeAccess = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "Demo1", PatternType.LITERAL), 1, false, false));
-        boolean readAccess = checkJwtClaims(topicAccess, new Action(AclOperation.READ, new ResourcePattern(ResourceType.TOPIC, "Demo1", PatternType.LITERAL), 1, false, false));
+    void testNonKafkaRolesFirst() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("NotAKafkaRole", "Kafka_Demo1_Write",
+                "Kafka_Demo3_Write", "Kafka_Demo2_Write", "Kafka_Demo1_Read"), "Kafka_");
+        boolean describeAccess = checkTopicJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE,
+                new ResourcePattern(ResourceType.TOPIC, "Demo1", PatternType.LITERAL), 1, false, false));
+        boolean readAccess = checkTopicJwtClaims(topicAccess, new Action(AclOperation.READ,
+                new ResourcePattern(ResourceType.TOPIC, "Demo1", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(describeAccess);
         Assertions.assertTrue(readAccess);
     }
 
     @Test
-    void testTopicWithUnderscore ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("Kafka_Demo1_Topic_Read"), "Kafka_");
-        boolean readAccess = checkJwtClaims(topicAccess, new Action(AclOperation.READ, new ResourcePattern(ResourceType.TOPIC, "Demo1_Topic", PatternType.LITERAL), 1, false, false));
+    void testTopicWithUnderscore() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("Kafka_Demo1_Topic_Read"), "Kafka_");
+        boolean readAccess = checkTopicJwtClaims(topicAccess, new Action(AclOperation.READ,
+                new ResourcePattern(ResourceType.TOPIC, "Demo1_Topic", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(readAccess);
     }
 
     @Test
-    void testIdempotentWrite ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("Kafka_Demo1_Topic_Write"), "Kafka_");
-        boolean readAccess = checkJwtClaims(topicAccess, new Action(AclOperation.IDEMPOTENT_WRITE, new ResourcePattern(ResourceType.CLUSTER, "Demo1_Topic", PatternType.LITERAL), 1, false, false));
+    void testIdempotentWrite() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("Kafka_Demo1_Topic_Write"), "Kafka_");
+        boolean readAccess = checkTopicJwtClaims(topicAccess, new Action(AclOperation.IDEMPOTENT_WRITE,
+                new ResourcePattern(ResourceType.CLUSTER, "Demo1_Topic", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(readAccess);
     }
 
     @Test
-    void testDescribe ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("*_all"), "");
-        boolean readAccess = checkJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE, new ResourcePattern(ResourceType.TOPIC, "Demo1_Topic", PatternType.LITERAL), 1, false, false));
+    void testDescribe() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("*_all"), "");
+        boolean readAccess = checkTopicJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE,
+                new ResourcePattern(ResourceType.TOPIC, "Demo1_Topic", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(readAccess);
     }
 
     @Test
-    void testIdempotentWriteWithWildcard ()
-    {
-        List<TopicAccess> topicAccess = extractAccesses(List.of("*_all"), "");
-        boolean readAccess = checkJwtClaims(topicAccess, new Action(AclOperation.IDEMPOTENT_WRITE, new ResourcePattern(ResourceType.CLUSTER, "Demo1_Topic", PatternType.LITERAL), 1, false, false));
+    void testIdempotentWriteWithWildcard() {
+        List<TopicAccess> topicAccess = extractTopicAccesses(List.of("*_all"), "");
+        boolean readAccess = checkTopicJwtClaims(topicAccess, new Action(AclOperation.IDEMPOTENT_WRITE,
+                new ResourcePattern(ResourceType.CLUSTER, "Demo1_Topic", PatternType.LITERAL), 1, false, false));
         Assertions.assertTrue(readAccess);
+    }
+
+    @Test
+    void testDescribeConfigClaimWithCluster() {
+        List<ClusterAccess> topicAccess = extractClusterAccesses(List.of("Kafka_Cluster_describe-configs"), "Kafka_");
+        boolean result = checkClusterJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE_CONFIGS,
+                new ResourcePattern(ResourceType.CLUSTER, "Cluster", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
     }
 
 }
