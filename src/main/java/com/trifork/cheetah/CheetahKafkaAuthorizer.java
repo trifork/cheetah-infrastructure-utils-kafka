@@ -75,7 +75,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         }
 
         List<String> topicAccessesRaw = accesses.stream()
-                .filter(access -> !access.contains(prefix + "_Cluster"))
+                .filter(access -> !access.startsWith(prefix + "_Cluster"))
                 .collect(Collectors.toList());
 
         List<String> clusterAccessesRaw = accesses.stream()
