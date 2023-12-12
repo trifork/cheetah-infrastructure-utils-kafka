@@ -10,6 +10,9 @@
         <java.version>17</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.version>3.11.0</maven.compiler.version>
+        <maven.compiler.release>17</maven.compiler.release>
+        <!--<maven.compiler.release>8</maven.compiler.release>-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <git.repository>trifork/cheetah-infrastructure-utils-kafka</git.repository>
         <strimzi.kafka.oauth.version>0.14.0</strimzi.kafka.oauth.version>
@@ -49,6 +52,7 @@
         <profile>
             <id>local</id>
             <activation>
+                <jdk>[17,</jdk>
                 <activeByDefault>true</activeByDefault>
             </activation>
             <distributionManagement>
@@ -67,6 +71,7 @@
         <profile>
             <id>release</id>
             <activation>
+                <jdk>[17,</jdk>
                 <activeByDefault>false</activeByDefault>
                 <property>
                     <name>useGithubRepository</name>
