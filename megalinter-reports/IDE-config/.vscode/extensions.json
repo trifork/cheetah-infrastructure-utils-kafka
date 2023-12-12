@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "exiasr.hadolint",
+        "esbenp.prettier-vscode",
+        "Bridgecrew.checkov",
+        "AquaSecurityOfficial.trivy-vulnerability-scanner"
+    ]
+}
