@@ -58,7 +58,7 @@ jobs:
           distribution: "temurin"
           server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
           #settings-path: ${{ inputs.settings-path }} # location for the settings.xml file
-          cache: "maven"
+          cache: "maven17"
 
       - name: Package with Maven
         shell: bash
