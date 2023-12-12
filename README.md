@@ -1,6 +1,7 @@
 # Cheetah Kafka Authorizer
 
-`CheetahKafkaAuthorizer` is used for claim based access to Kafka.
+`CheetahKafkaAuthorizer` is used for claim based access to Kafka. It uses `OAuthKafkaPrincipalBuilder` from <https://github.com/strimzi/strimzi-kafka-oauth/tree/main>. The `OAuthKafkaPrincipalBuilder` extracts the JWT from the request and creates a `OAuthKafkaPrincipal` which is used by `CheetahKafkaAuthorizer` to authorize the request.
+
 Access is expressed through claims in a JWT with the following pattern:
 
 ```json
@@ -11,6 +12,71 @@ Access is expressed through claims in a JWT with the following pattern:
   "topics": "*_all, MyTopic_all, YourTopic_read"
 }
 ```
+
+The `topics` claim is a comma separated list of topic access. Each access is a string with the following pattern:
+
+`<prefix>_<topic-name>_<operation>`
+
+The `<prefix>` is optional and can be configured. The `<topic-name>` is the name of the topic to access. The `<operation>` is the operation to perform on the topic.
+
+The `<operation>` will be directly translated into the Kafka operation. See <https://docs.confluent.io/platform/current/kafka/authorization.html#operations> for more information.  
+
+**NB:** It will be transformed into uppercase before being used and `-` will be replaced with `_`.  
+Example: `kafka_mytopic_describe-configs` will be transformed into `DESCRIBE_CONFIGS` ACL operation for the topic called `mytopic`.
+
+## Resource types
+
+### Topics
+
+The `<operations>` acts as a operation group which assigns additional permissions:
+
+Claimed Operations (groups): 
+* WRITE
+* READ
+* DESCRIBE
+
+gives the following permissions in Kafka:
+
+#### TYPE: READ
+
+Example: `kafka_mytopic_read`
+
+| Kafka Resource | Allows requested Action |
+| -------------- | ----------------------- |
+| Topic          | READ, DESCRIBE          |
+| Group          | READ, DESCRIBE          |
+
+The read is a special case as it allows both READ and DESCRIBE on the topic and group. This allows a consumer to read from the topic and describe the group, which is needed for consuming data.  
+Use this for services that consume data from Kafka.
+
+#### Type: WRITE
+
+Example `kafka_mytopic_write`
+
+| Kafka Resource | Allows requested Action |
+| -------------- | ----------------------- |
+| Topic          | WRITE, DESCRIBE         |
+| Group          | DESCRIBE                |
+| Cluster        | IDEMPOTENT_WRITE        |
+
+The `write` operation is a special case as it allows both WRITE and DESCRIBE on the topic and group. It is also required to have write accesss to the cluster to allow idempotent producers to produce data to Kafka.  
+Use this for services that produce data to Kafka.
+
+#### Type: ALL
+
+Example `kafka_mytopic_all`
+
+| Kafka Resource | Allows requested Action |
+| -------------- | ----------------------- |
+| Topic          | *                       |
+| Group          | READ, DESCRIBE          |
+| Cluster        | IDEMPOTENT_WRITE        |
+
+The `all` operation is a special case as it allows all operations on the topic. This supports producers and consumers and gives them more control over topics.
+
+### Cluster
+
+if you write <prefix>_cluster_<operation> in the claim, it will be interpreted as a cluster operation, as cluster is a special keyword. The operation will be directly translated into the kafka operation. 
 
 ## Workflow
 

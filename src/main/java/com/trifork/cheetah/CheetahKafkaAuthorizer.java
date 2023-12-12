@@ -231,9 +231,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         for (ClusterAccess c : clusterAccesses) {
             switch (requestedAction.resourcePattern().resourceType()) {
                 case CLUSTER:
-                    if (checkClusterAccess(c.operation, requestedAction))
-                        return true;
-                    break;
+                    return claimSupportsRequestedAction(c.operation, requestedAction);
                 default:
                     break;
             }
@@ -256,11 +254,6 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         switch (requestedAction.operation()) {
             case IDEMPOTENT_WRITE:
                 return List.of(ANY, ALL, WRITE).contains(claimedOperation);
-            case DESCRIBE:
-                return List.of(ANY, ALL, WRITE, READ, DELETE, ALTER, DESCRIBE).contains(claimedOperation);
-            case DESCRIBE_CONFIGS:
-                return List.of(ANY, ALL, WRITE, READ, DELETE, ALTER, DESCRIBE, DESCRIBE_CONFIGS)
-                        .contains(claimedOperation);
             default:
                 return false;
         }
@@ -272,10 +265,14 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
                 // WRITE, READ, DELETE and ALTER implicitly allows DESCRIBE
                 return List.of(ANY, ALL, WRITE, READ, DELETE, ALTER, DESCRIBE).contains(claimedOperation);
             default:
-                return List.of(ANY, ALL).contains(claimedOperation)
-                        || requestedAction.operation().equals(claimedOperation);
+                return claimSupportsRequestedAction(claimedOperation, requestedAction);
 
         }
+    }
+
+    private static boolean claimSupportsRequestedAction(AclOperation claimedOperation, Action requestedAction) {
+        return List.of(ANY, ALL).contains(claimedOperation)
+                || requestedAction.operation().equals(claimedOperation);
     }
 
     private static boolean matchTopicPattern(Action action, TopicAccess t) {
