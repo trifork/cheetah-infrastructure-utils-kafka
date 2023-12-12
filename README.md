@@ -30,7 +30,7 @@ Example: `kafka_mytopic_describe-configs` will be transformed into `DESCRIBE_CON
 
 The `<operations>` acts as a operation group which assigns additional permissions:
 
-Claimed Operations (groups): 
+Claimed Operations (groups):
 * WRITE
 * READ
 * ALL
@@ -42,11 +42,11 @@ gives the following permissions in Kafka:
 Example: `kafka_mytopic_read`
 
 | Kafka Resource | Allows requested Action |
-| -------------- | ----------------------- |
+|----------------|-------------------------|
 | Topic          | READ, DESCRIBE          |
 | Group          | READ, DESCRIBE          |
 
-The `read` operation is a special case as it allows both READ and DESCRIBE on the topic and group.   
+The `read` operation is a special case as it allows both READ and DESCRIBE on the topic and group.
 Use this for services that consume data from Kafka.
 
 #### Type: WRITE
@@ -54,7 +54,7 @@ Use this for services that consume data from Kafka.
 Example `kafka_mytopic_write`
 
 | Kafka Resource | Allows requested Action |
-| -------------- | ----------------------- |
+|----------------|-------------------------|
 | Topic          | WRITE, DESCRIBE         |
 | Group          | DESCRIBE                |
 | Cluster        | IDEMPOTENT_WRITE        |
@@ -67,7 +67,7 @@ Use this for services that produce data to Kafka.
 Example `kafka_mytopic_all`
 
 | Kafka Resource | Allows requested Action |
-| -------------- | ----------------------- |
+|----------------|-------------------------|
 | Topic          | *                       |
 | Group          | READ, DESCRIBE          |
 | Cluster        | IDEMPOTENT_WRITE        |
@@ -76,7 +76,7 @@ The `all` operation is a special case as it allows all operations on the topic. 
 
 ### Cluster
 
-if you write <prefix>_cluster_<operation> in the claim, it will be interpreted as a cluster operation, as cluster is a special keyword. The operation will be directly translated into the kafka operation. 
+if you write <prefix>_cluster_<operation> in the claim, it will be interpreted as a cluster operation, as cluster is a special keyword. The operation will be directly translated into the kafka operation.
 
 ## Workflow
 
