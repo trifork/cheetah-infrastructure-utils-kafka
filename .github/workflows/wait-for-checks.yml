@@ -1,6 +1,10 @@
 name: summary
 on:
   pull_request:
+
+permissions:
+  checks: read
+
 jobs:
   enforce-all-checks:
     runs-on: ubuntu-latest

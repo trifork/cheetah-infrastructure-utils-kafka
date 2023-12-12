@@ -45,7 +45,6 @@ stop
 
 ![](./docs/cheetahkafkaauthorizer-workflow.svg)
 
-
 # Deployment
 
 Configure the Claim in JWT to look for topic access by setting:
