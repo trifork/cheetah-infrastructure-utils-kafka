@@ -86,12 +86,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         List<ClusterAccess> clusterAccesses = extractClusterAccesses(clusterAccessesRaw, prefix);
 
         for (Action action : actions) {
-            if (checkTopicJwtClaims(topicAccesses, action)) {
-                results.add(AuthorizationResult.ALLOWED);
-                continue;
-            }
-
-            if (checkClusterJwtClaims(clusterAccesses, action)) {
+            if (checkTopicJwtClaims(topicAccesses, action) || checkClusterJwtClaims(clusterAccesses, action)) {
                 results.add(AuthorizationResult.ALLOWED);
                 continue;
             }
