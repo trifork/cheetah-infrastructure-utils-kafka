@@ -46,7 +46,7 @@ Example: `kafka_mytopic_read`
 | Topic          | READ, DESCRIBE          |
 | Group          | READ, DESCRIBE          |
 
-The read is a special case as it allows both READ and DESCRIBE on the topic and group. This allows a consumer to read from the topic and describe the group, which is needed for consuming data.  
+The `read` operation is a special case as it allows both READ and DESCRIBE on the topic and group.   
 Use this for services that consume data from Kafka.
 
 #### Type: WRITE
@@ -72,7 +72,7 @@ Example `kafka_mytopic_all`
 | Group          | READ, DESCRIBE          |
 | Cluster        | IDEMPOTENT_WRITE        |
 
-The `all` operation is a special case as it allows all operations on the topic. This supports producers and consumers and gives them more control over topics.
+The `all` operation is a special case as it allows all operations on the topic. This supports producers and consumers and gives them more control over topics, such as altering topic configuration.
 
 ### Cluster
 
