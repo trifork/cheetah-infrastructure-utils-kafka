@@ -33,7 +33,7 @@ The `<operations>` acts as a operation group which assigns additional permission
 Claimed Operations (groups): 
 * WRITE
 * READ
-* DESCRIBE
+* ALL
 
 gives the following permissions in Kafka:
 
