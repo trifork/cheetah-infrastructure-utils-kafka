@@ -9,6 +9,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   trivy-repo-scan:
     name: trivy (repo scan)

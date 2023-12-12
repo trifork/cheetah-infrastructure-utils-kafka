@@ -1,5 +1,6 @@
 package com.trifork.cheetah;
 
+import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import kafka.security.authorizer.AclAuthorizer;
@@ -10,6 +11,8 @@ import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -42,7 +45,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
 
         StringBuilder logString = new StringBuilder();
         logString.append("CheetahKafkaAuthorizer values:\n");
-        for (var key : keys) {
+        for (String key : keys) {
             ConfigUtil.putIfNotNull(p, key, configs.get(key));
 
             if (LOG.isInfoEnabled()) {
@@ -64,7 +67,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
             return handleSuperUsers(requestContext, actions);
         }
 
-        var principal = (OAuthKafkaPrincipal) requestContext.principal();
+        OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) requestContext.principal();
 
         List<String> accesses;
         try {
@@ -105,9 +108,9 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
     private List<String> extractAccessClaim(OAuthKafkaPrincipal principal) {
         List<String> result = new ArrayList<>();
         if (isClaimList) {
-            var jwt = principal.getJwt();
-            var topicClaim = jwt.getClaimsJSON().get(topicClaimName);
-            var iterator = topicClaim.elements();
+            BearerTokenWithPayload jwt = principal.getJwt();
+            JsonNode topicClaim = jwt.getClaimsJSON().get(topicClaimName);
+            Iterator<JsonNode> iterator = topicClaim.elements();
             while (iterator.hasNext()) {
                 result.add(iterator.next().asText());
             }
