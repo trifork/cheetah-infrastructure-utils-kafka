@@ -1,4 +1,4 @@
-package com.trifork.cheetah.TopicAuthorization;
+package com.trifork.cheetah.topicauthorization;
 
 import org.apache.kafka.server.authorizer.Action;
 import java.util.List;

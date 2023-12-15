@@ -13,9 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.trifork.cheetah.AccessClaim.*;
-import com.trifork.cheetah.ClusterAuthorization.*;
-import com.trifork.cheetah.TopicAuthorization.*;
+import com.trifork.cheetah.accessclaim.*;
+import com.trifork.cheetah.clusterauthorization.*;
+import com.trifork.cheetah.topicauthorization.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,7 +46,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         };
 
         var logString = new StringBuilder("CheetahKafkaAuthorizer values:\n");
-        for (var key : keys) {
+        for (final var key : keys) {
             ConfigUtil.putIfNotNull(p, key, configs.get(key));
             if (LOG.isInfoEnabled()) {
                 logString.append("\t").append(key).append(" = ").append(configs.get(key)).append("\n");
@@ -77,8 +77,8 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         }
 
         // Separating topic and cluster accesses
-        List<String> topicAccessList = new ArrayList<>();
-        List<String> clusterAccessList = new ArrayList<>();
+        final List<String> topicAccessList = new ArrayList<>();
+        final List<String> clusterAccessList = new ArrayList<>();
         for (String access : accesses) {
             if (access.startsWith(prefix + "_Cluster")) {
                 clusterAccessList.add(access);

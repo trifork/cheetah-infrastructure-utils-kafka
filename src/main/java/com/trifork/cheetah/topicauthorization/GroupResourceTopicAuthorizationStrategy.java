@@ -1,4 +1,4 @@
-package com.trifork.cheetah.TopicAuthorization;
+package com.trifork.cheetah.topicauthorization;
 
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.server.authorizer.Action;
@@ -10,7 +10,7 @@ public class GroupResourceTopicAuthorizationStrategy implements TopicAuthorizati
     @Override
     public boolean authorize(Action requestedAction, List<TopicAccess> topicAccesses) {
         for (TopicAccess t : topicAccesses) {
-            var claimedOperation = t.operation();
+            final var claimedOperation = t.operation();
             if (checkGroupAccess(claimedOperation, requestedAction)) {
                 return true;
             }

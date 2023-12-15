@@ -1,4 +1,4 @@
-package com.trifork.cheetah.ClusterAuthorization;
+package com.trifork.cheetah.clusterauthorization;
 
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.server.authorizer.Action;
@@ -10,7 +10,7 @@ public class ClusterResourceAuthorizationStrategy implements ClusterAuthorizatio
     @Override
     public boolean authorize(Action requestedAction, List<ClusterAccess> clusterAccesses) {
         for (ClusterAccess c : clusterAccesses) {
-            var claimedOperation = c.operation();
+            final var claimedOperation = c.operation();
             if (checkClusterAccess(claimedOperation, requestedAction))
                 return true;
         }

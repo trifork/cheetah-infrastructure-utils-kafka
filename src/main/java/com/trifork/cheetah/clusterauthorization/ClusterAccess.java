@@ -1,4 +1,4 @@
-package com.trifork.cheetah.ClusterAuthorization;
+package com.trifork.cheetah.clusterauthorization;
 
 import org.apache.kafka.common.acl.AclOperation;
 

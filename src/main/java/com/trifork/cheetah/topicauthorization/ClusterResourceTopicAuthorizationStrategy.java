@@ -1,4 +1,4 @@
-package com.trifork.cheetah.TopicAuthorization;
+package com.trifork.cheetah.topicauthorization;
 
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.server.authorizer.Action;
@@ -10,9 +10,10 @@ public class ClusterResourceTopicAuthorizationStrategy implements TopicAuthoriza
     @Override
     public boolean authorize(Action requestedAction, List<TopicAccess> topicAccesses) {
         for (TopicAccess t : topicAccesses) {
-            var claimedOperation = t.operation();
-            if (checkClusterAccess(claimedOperation, requestedAction))
+            final var claimedOperation = t.operation();
+            if (checkClusterAccess(claimedOperation, requestedAction)) {
                 return true;
+            }
         }
         return false;
     }

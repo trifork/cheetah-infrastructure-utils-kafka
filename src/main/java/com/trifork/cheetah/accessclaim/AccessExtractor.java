@@ -1,4 +1,4 @@
-package com.trifork.cheetah.AccessClaim;
+package com.trifork.cheetah.accessclaim;
 
 import java.util.*;
 

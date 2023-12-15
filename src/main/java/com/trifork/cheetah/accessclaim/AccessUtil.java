@@ -1,4 +1,4 @@
-package com.trifork.cheetah.AccessClaim;
+package com.trifork.cheetah.accessclaim;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +10,7 @@ public class AccessUtil {
     private static final Logger LOG = LoggerFactory.getLogger(AccessUtil.class);
 
     public static List<AccessClaim> extractAccesses(List<String> accesses, String prefix) {
-        List<AccessClaim> result = new ArrayList<>();
+        final List<AccessClaim> result = new ArrayList<>();
         for (String access : accesses) {
             try {
                 if (!access.startsWith(prefix)) {

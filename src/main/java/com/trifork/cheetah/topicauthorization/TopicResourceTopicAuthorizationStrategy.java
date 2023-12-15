@@ -1,4 +1,4 @@
-package com.trifork.cheetah.TopicAuthorization;
+package com.trifork.cheetah.topicauthorization;
 
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.server.authorizer.Action;
@@ -8,9 +8,9 @@ import static org.apache.kafka.common.acl.AclOperation.*;
 
 public class TopicResourceTopicAuthorizationStrategy implements TopicAuthorizationStrategy {
     @Override
-    public boolean authorize(Action requestedAction, List<TopicAccess> topicAccesses) {
+    public boolean authorize(final Action requestedAction, final List<TopicAccess> topicAccesses) {
         for (TopicAccess t : topicAccesses) {
-            var claimedOperation = t.operation();
+            final var claimedOperation = t.operation();
             if (matchTopicPattern(requestedAction, t) && checkTopicAccess(claimedOperation, requestedAction)) {
                 return true;
             }
@@ -18,7 +18,7 @@ public class TopicResourceTopicAuthorizationStrategy implements TopicAuthorizati
         return false;
     }
 
-    private static boolean checkTopicAccess(AclOperation claimedOperation, Action requestedAction) {
+    private static boolean checkTopicAccess(final AclOperation claimedOperation, final Action requestedAction) {
         switch (requestedAction.operation()) {
             case DESCRIBE:
                 // WRITE, READ, DELETE and ALTER implicitly allows DESCRIBE
@@ -30,9 +30,9 @@ public class TopicResourceTopicAuthorizationStrategy implements TopicAuthorizati
         }
     }
 
-    private static boolean matchTopicPattern(Action action, TopicAccess t) {
-        String resourceName = action.resourcePattern().name();
-        String pattern = t.pattern();
+    private static boolean matchTopicPattern(final Action action, final TopicAccess topicAccess) {
+        final String resourceName = action.resourcePattern().name();
+        final String pattern = topicAccess.pattern();
 
         if (pattern.endsWith("*")) {
             // Pattern ends with '*', check if resourceName starts with the part of the
