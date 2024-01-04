@@ -48,7 +48,7 @@ jobs:
           image_name: ${{ env.IMAGE_NAME }}
           github_run_id: ${{ github.run_id }}
           dockerfile_path: ${{ env.DOCKERFILE_PATH }}
-          gitlab_token: ${{ github.ref_type == 'tag' && secrets.GITLAB_TOKEN || '' }}
+          gitlab_token: ${{ github.ref_type == 'tag' && secrets.KAMSTRUP_GITLAB_PAT || '' }}
           push_image: ${{ (github.ref_type == 'tag' || github.event_name == 'workflow_dispatch') && 'true' || 'false' }}
           upload_image: ${{ (github.event_name == 'pull_request' || github.ref_name == 'main' || github.event_name == 'workflow_dispatch') && 'true' || 'false' }}
 
