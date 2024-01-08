@@ -48,7 +48,7 @@ jobs:
           image_name: ${{ env.IMAGE_NAME }}
           github_run_id: ${{ github.run_id }}
           dockerfile_path: ${{ env.DOCKERFILE_PATH }}
-          gitlab_token: ${{ github.ref_type == 'tag' && secrets.GITLAB_TOKEN || '' }}
+          gitlab_token: ${{ github.ref_type == 'tag' && secrets.KAMSTRUP_GITLAB_PAT || '' }}
           push_image: ${{ (github.ref_type == 'tag' || github.event_name == 'workflow_dispatch') && 'true' || 'false' }}
           upload_image: ${{ (github.event_name == 'pull_request' || github.ref_name == 'main' || github.event_name == 'workflow_dispatch') && 'true' || 'false' }}
 
@@ -67,7 +67,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Docker image artifact
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3
+        uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110 # v4
         with:
           name: dockerimage
           path: ${{ github.workspace }}/tmp
@@ -95,7 +95,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Docker image artifact
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3
+        uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110 # v4
         with:
           name: dockerimage
           path: ${{ github.workspace }}/tmp
