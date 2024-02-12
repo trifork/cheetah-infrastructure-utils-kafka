@@ -1,4 +1,4 @@
-FROM maven:3.9-eclipse-temurin-17 as build
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 COPY pom.xml ./
 
@@ -10,7 +10,7 @@ COPY src ./src
 # Build
 RUN mvn -B package --file pom.xml
 
-FROM quay.io/strimzi/kafka:0.38.0-kafka-3.6.0
+FROM quay.io/strimzi/kafka:0.39.0-kafka-3.6.1
 
 USER root:root
 COPY --from=build /app/target/cheetah-kafka-authorizer*.jar /opt/kafka/libs/cheetah-kafka-authorizer.jar
