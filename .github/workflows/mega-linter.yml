@@ -36,10 +36,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Git Checkout
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.READ_PACKAGE_PAT }}
           #fetch-depth: 0 # If you use VALIDATE_ALL_CODEBASE = true, you can remove this line to improve performances
 
       # MegaLinter
