@@ -22,7 +22,7 @@ jobs:
         id: get-version
         uses: trifork/cheetah-infrastructure-utils-workflows/.github/actions/versioning/get-version@main
         with:
-          file-path: Dockerfile
+          file-path: ./Dockerfile
           prefix: 'LABEL version=\"'
           suffix: '\"'
 
@@ -41,3 +41,20 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/trifork/cheetah-infrastructure-utils-kafka:${{ steps.get-version.outputs.version }}-${{ steps.get-package-suffix.outputs.branch-name }}-SNAPSHOT-${{ github.run_number }}
           push: true
+
+  create-snapshot-maven:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get package suffix
+        id: get-package-suffix
+        run: echo "branch-name=$(echo '${{ github.ref_name }}' | sed 's/[^a-zA-Z0-9]/-/g')" >> $GITHUB_OUTPUT
+
+      - name: Build and publish snapshot package
+        uses: trifork/cheetah-infrastructure-utils/.github/actions/maven/maven-publish@main
+        with:
+          profiles: trifork
+          package-suffix: "${{ steps.get-package-suffix.outputs.branch-name }}-SNAPSHOT"
+          TRIFORK_GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_PAT }}
