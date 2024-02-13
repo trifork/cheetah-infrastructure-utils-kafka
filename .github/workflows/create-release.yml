@@ -84,12 +84,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build and publish release package
-        uses: trifork/cheetah-infrastructure-utils/.github/actions/maven/maven-publish@main
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          profiles: trifork
-          package-suffix: ""
-          TRIFORK_GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_PAT }}
+          java-version: "17"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Publish Maven package
+        shell: bash
+        run: mvn deploy -P trifork -s settings.xml
+        env:
+          GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_PAT }}
 
       - name: Get checksum
         id: get-checksum
