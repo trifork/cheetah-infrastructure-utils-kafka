@@ -23,10 +23,10 @@ jobs:
       - name: Run Trivy vulnerability scanner in repo mode
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: "fs"
+          scan-type: 'fs'
           ignore-unfixed: true
-          format: "sarif"
-          output: "trivy-repo-results.sarif"
+          format: 'sarif'
+          output: 'trivy-repo-results.sarif'
 
       - name: Publish repo report
         id: import-repo-scan
@@ -34,9 +34,9 @@ jobs:
         uses: trifork/cheetah-infrastructure-utils/.github/actions/defectdojo-import-scan@main
         with:
           token: ${{ secrets.DEFECTDOJO_TOKEN }}
-          defectdojo_url: "https://defectdojo.cheetah.trifork.dev"
-          defectdojo_endpoint: "/api/v2/reimport-scan/"
-          file: "trivy-repo-results.sarif"
+          defectdojo_url: 'https://defectdojo.cheetah.trifork.dev'
+          defectdojo_endpoint: '/api/v2/reimport-scan/'
+          file: 'trivy-repo-results.sarif'
           scan_type: SARIF # Trivy Scan
           engagement_name: import-repo-scan
           product_name: ${{ github.repository }}
@@ -46,5 +46,5 @@ jobs:
       - name: Show response
         if: github.ref_name == 'main' && github.event_name == 'push'
         run: |
-          set -e	
+          set -e
           printf '%s\n' '${{ steps.import-repo-scan.outputs.response }}'
