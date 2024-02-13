@@ -17,8 +17,12 @@ jobs:
         with:
           token: ${{ secrets.READ_PACKAGE_PAT }}
 
-      - name: Bump version
-        run: sed -i 's/LABEL version="[^"]*"/LABEL version="${{ inputs.version }}"/' your_file.txt
+      - name: Bump docker version
+        run: sed -i 's/LABEL version="[^"]*"/LABEL version="${{ inputs.version }}"/' Dockerfile.txt
+
+      - name: Bump major version
+        working-directory: ${{ inputs.context }}
+        run: mvn build-helper:parse-version versions:set -DgenerateBackupPoms=false -DnewVersion=${{ inputs.version }}
 
       - name: Create release branch
         run: |

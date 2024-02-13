@@ -19,8 +19,13 @@ jobs:
           echo "::error::Cannot create release candidate from branch '${{ github.ref_name }}' since it does not start with 'release/'"
           exit 1
 
-  create-release-candidate:
+  create-release-candidate-docker:
+    needs: verify-release-branch
     runs-on: ubuntu-latest
+
+    outputs:
+      checksum: ${{ steps.get-checksum.outputs.checksum }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +36,6 @@ jobs:
         with:
           image-name: cheetah-infrastructure-utils-kafka
           TRIFORK_GITHUB_PAT: ${{ secrets.WRITE_PACKAGE_PAT }}
-          KAMSTRUP_GITLAB_PAT: ${{ secrets.KAMSTRUP_GITLAB_PAT }}
 
       - name: Get version
         id: get-version
@@ -65,19 +69,54 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           push: true
 
-      - name: Generate checksum
-        run: "echo ${{ steps.build-image.outputs.digest }} >> digest.txt"
+      - name: Get checksum
+        id: get-checksum
+        run: echo checksum=${{ steps.build-image.outputs.digest }} >> $GITHUB_OUTPUT
 
-      - name: Get release tag
-        id: get-release-tag
-        uses: trifork/cheetah-infrastructure-utils-workflows/.github/actions/versioning/get-release-tag@main
+  create-release-candidate-maven:
+    needs: verify-release-branch
+    runs-on: ubuntu-latest
+
+    outputs:
+      checksum: ${{ steps.get-checksum.outputs.checksum }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and publish release candidate package
+        uses: trifork/cheetah-infrastructure-utils/.github/actions/maven/maven-publish@main
         with:
-          version: ${{ steps.get-version.outputs.version }}
+          profiles: trifork
+          package-suffix: "RC-${{ github.run_number }}"
+          TRIFORK_GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_PAT }}
+
+      - name: Get checksum
+        id: get-checksum
+        run: echo checksum=${{ hashFiles('./target/*.jar') }} >> $GITHUB_OUTPUT
+
+  create-release:
+    needs: [create-release-candidate-docker, create-release-candidate-maven]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version
+        id: get-version
+        uses: trifork/cheetah-infrastructure-utils-workflows/.github/actions/versioning/get-version@main
+        with:
+          file-path: Dockerfile
+          prefix: 'LABEL version=\"'
+          suffix: '\"'
+
+      - name: Create checksum files
+        run: |
+          ${{ needs.create-release-candidate-docker.outputs.checksum }} >> image-checksum.txt
+          ${{ needs.create-release-candidate-maven.outputs.checksum }} >> jar-checksum.txt
 
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: true
-          tag_name: ${{ steps.get-release-tag.outputs.release-tag }}-RC.${{ github.run_number }}
-          files: digest.txt
-          prerelease: true
+          tag_name: v${{ steps.get-version.outputs.version }}-RC.${{ github.run_number }}
+          files: |
+            image-checksum.txt
+            jar-checksum.txt

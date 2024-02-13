@@ -2,28 +2,21 @@ name: Create Snapshot
 
 on:
   workflow_dispatch:
+  pull_request:
 
 jobs:
-  verify-release-branch:
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Success"
-        if: ${{ startsWith(github.ref_name, 'release/') }}
-        run: |
-          echo "Creating a release candidate for branch '${{ github.ref_name }}'"
-          exit 0
-
-      - name: "Error"
-        if: ${{ !startsWith(github.ref_name, 'release/') }}
-        run: |
-          echo "::error::Cannot create release candidate from branch '${{ github.ref_name }}' since it does not start with 'release/'"
-          exit 1
-
-  create-release-candidate:
+  create-snapshot-docker:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Get images
+        id: get-images
+        uses: trifork/cheetah-infrastructure-utils/.github/actions/docker/get-images@main
+        with:
+          image-name: cheetah-infrastructure-utils-kafka
+          TRIFORK_GITHUB_PAT: ${{ secrets.WRITE_PACKAGE_PAT }}
 
       - name: Get version
         id: get-version
