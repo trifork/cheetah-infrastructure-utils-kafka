@@ -56,7 +56,7 @@ jobs:
   
       - name: Set version suffix
         shell: bash
-        run: mvn -q build-helper:parse-version versions:set -DnewVersion=\${parsedVersion.qualifier}-SNAPSHOT
+        run: mvn -q build-helper:parse-version versions:set -DnewVersion=\${parsedVersion.qualifier}.\${parsedVersion}-SNAPSHOT
   
       - name: Publish Maven package
         shell: bash
