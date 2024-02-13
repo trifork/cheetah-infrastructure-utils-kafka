@@ -48,9 +48,18 @@ jobs:
         id: get-package-suffix
         run: echo "branch-name=$(echo '${{ github.ref_name }}' | sed 's/[^a-zA-Z0-9]/-/g')" >> $GITHUB_OUTPUT
 
-      - name: Build and publish snapshot package
-        uses: trifork/cheetah-infrastructure-utils/.github/actions/maven/maven-publish@main
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          profiles: trifork
-          package-suffix: "${{ steps.get-package-suffix.outputs.branch-name }}-SNAPSHOT"
-          TRIFORK_GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_PAT }}
+          java-version: "17"
+          distribution: "temurin"
+  
+      - name: Set version suffix
+        shell: bash
+        run: mvn -q build-helper:parse-version versions:set -DnewVersion=\${parsedVersion.qualifier}.\${parsedVersion.buildNumber}-SNAPSHOT
+  
+      - name: Publish Maven package
+        shell: bash
+        run: mvn deploy -P trifork -s settings.xml
+        env:
+          GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_PAT }}
