@@ -114,7 +114,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: true
-          tag_name: v${{ steps.get-version.outputs.version }}
+          tag_name: ${{ steps.get-version.outputs.version }}
           files: |
             image-checksum.txt
             jar-checksum.txt
