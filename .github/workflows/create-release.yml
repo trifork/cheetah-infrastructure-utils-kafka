@@ -107,8 +107,8 @@ jobs:
 
       - name: Create checksum files
         run: |
-          ${{ needs.create-release-docker.outputs.checksum }} >> image-checksum.txt
-          ${{ needs.create-release-maven.outputs.checksum }} >> jar-checksum.txt
+          echo ${{ needs.create-release-docker.outputs.checksum }} >> image-checksum.txt
+          echo ${{ needs.create-release-maven.outputs.checksum }} >> jar-checksum.txt
 
       - name: Create release
         uses: softprops/action-gh-release@v1
