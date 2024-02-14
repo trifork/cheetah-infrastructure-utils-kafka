@@ -101,6 +101,9 @@ jobs:
     needs: [create-release-docker, create-release-maven]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Get version
         id: get-version
         run: echo version=$(grep -oP 'LABEL version="\K[^"]*' Dockerfile) >> $GITHUB_OUTPUT
