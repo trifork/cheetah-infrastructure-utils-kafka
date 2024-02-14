@@ -39,11 +39,7 @@ jobs:
 
       - name: Get version
         id: get-version
-        uses: trifork/cheetah-infrastructure-utils-workflows/.github/actions/versioning/get-version@main
-        with:
-          file-path: Dockerfile
-          prefix: 'LABEL version=\"'
-          suffix: '\"'
+        run: echo version=$(grep -oP 'LABEL version="\K[^"]*' Dockerfile) >> $GITHUB_OUTPUT
 
       - name: Extract metadata (tags, labels) for Docker
         id: metadata
