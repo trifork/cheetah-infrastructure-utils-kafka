@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.trifork.cheetah</groupId>
     <artifactId>cheetah-kafka-authorizer</artifactId>
-    <version>strimzi-0.38.0-kafka-3.6.0-trifork-1.5.0</version>
+    <version>strimzi-0.39.0-kafka-3.6.1-trifork-1.5.0</version>
+    <packaging>jar</packaging>
+
     <properties>
-        <java.version>17</java.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.version>3.11.0</maven.compiler.version>
-        <maven.compiler.release>17</maven.compiler.release>
-        <!--<maven.compiler.release>8</maven.compiler.release>-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>17</maven.compiler.release>
         <git.repository>trifork/cheetah-infrastructure-utils-kafka</git.repository>
         <strimzi.kafka.oauth.version>0.14.0</strimzi.kafka.oauth.version>
     </properties>
@@ -22,7 +20,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.13</artifactId>
-            <version>3.6.0</version>
+            <version>3.6.1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -48,11 +46,20 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.12.1</version>
+            </plugin>
+        </plugins>
+    </build>
+
     <profiles>
         <profile>
             <id>local</id>
             <activation>
-                <jdk>[17,</jdk>
                 <activeByDefault>true</activeByDefault>
             </activation>
             <distributionManagement>
@@ -69,18 +76,10 @@
             </distributionManagement>
         </profile>
         <profile>
-            <id>release</id>
-            <activation>
-                <jdk>[17,</jdk>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>useGithubRepository</name>
-                    <value>true</value>
-                </property>
-            </activation>
+            <id>trifork</id>
             <distributionManagement>
                 <repository>
-                    <id>github</id>
+                    <id>trifork-github</id>
                     <name>GitHub</name>
                     <url>https://maven.pkg.github.com/${git.repository}</url>
                 </repository>

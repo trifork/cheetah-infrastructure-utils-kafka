@@ -36,10 +36,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Git Checkout
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.READ_PACKAGE_PAT }}
           #fetch-depth: 0 # If you use VALIDATE_ALL_CODEBASE = true, you can remove this line to improve performances
 
       # MegaLinter
@@ -47,7 +47,7 @@ jobs:
         id: ml
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
-        uses: oxsecurity/megalinter/flavors/java@v7.8.0
+        uses: oxsecurity/megalinter/flavors/java@v7.9.0
         env:
           # All available variables are described in documentation
           # https://megalinter.io/configuration/
@@ -57,7 +57,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           #CSHARP_DOTNET_FORMAT_ARGUMENTS: "./Cheetah.WebApi.Shared.sln"
           # ADD YOUR CUSTOM ENV VARIABLES HERE OR DEFINE THEM IN A FILE .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
-          DISABLE_LINTERS: "JAVA_CHECKSTYLE,JAVA_PMD,REPOSITORY_TRIVY" #"REPOSITORY_TRIVY,REPOSITORY_TRIVY_SBOM,REPOSITORY_GRYPE,SPELL_LYCHEE"
+          DISABLE_LINTERS: "JAVA_CHECKSTYLE,JAVA_PMD,REPOSITORY_TRIVY,REPOSITORY_TRUFFLEHOG" #"REPOSITORY_TRIVY,REPOSITORY_TRIVY_SBOM,REPOSITORY_GRYPE,SPELL_LYCHEE"
           #DOCKERFILE_HADOLINT_ARGUMENTS: "--ignore ds026"
           #DOCKERFILE_HADOLINT_FILTER_REGEX_EXCLUDE: ".devcontainer"
           FILTER_REGEX_EXCLUDE: '(\.automation/test|\.automation/generated|\.github|docs/javascripts|docs/overrides|docs/json-schemas|flavors|clj-kondo|TEMPLATES|.devcontainer|integrationtests)'

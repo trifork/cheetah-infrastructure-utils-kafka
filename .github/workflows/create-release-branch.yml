@@ -1,0 +1,37 @@
+name: Create Release Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The full version for the release branch. This should be strimzi-x.y.z-kafka-x.y.z-trifork-x.y.z
+        required: true
+        type: string
+
+jobs:
+  create-release-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.READ_PACKAGE_PAT }}
+
+      - name: Bump docker version
+        run: sed -i 's/LABEL version="[^"]*"/LABEL version="${{ inputs.version }}"/' Dockerfile.txt
+
+      - name: Bump maven version
+        run: mvn build-helper:parse-version versions:set -DgenerateBackupPoms=false -DnewVersion=${{ inputs.version }}
+
+      - name: Create release branch
+        run: |
+          git config user.name "cheetahbot"
+          git config user.email "cheetahbot@users.noreply.github.com"
+
+          git checkout -b release/v${{ inputs.version }}
+          git commit --allow-empty -am "Create new release branch release/v${{ inputs.version }}"
+          git push --set-upstream origin release/v${{ inputs.version }}
+
+          git checkout ${{ github.ref_name }}
+          git merge release/v${{ inputs.version }}
+          git push
