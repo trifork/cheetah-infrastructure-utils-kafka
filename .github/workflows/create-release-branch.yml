@@ -28,10 +28,10 @@ jobs:
           git config user.name "cheetahbot"
           git config user.email "cheetahbot@users.noreply.github.com"
 
-          git checkout -b release/v${{ inputs.version }}
-          git commit --allow-empty -am "Create new release branch release/v${{ inputs.version }}"
-          git push --set-upstream origin release/v${{ inputs.version }}
+          git checkout -b release/${{ inputs.version }}
+          git commit --allow-empty -am "Create new release branch release/${{ inputs.version }}"
+          git push --set-upstream origin release/${{ inputs.version }}
 
           git checkout ${{ github.ref_name }}
-          git merge release/v${{ inputs.version }}
+          git merge release/${{ inputs.version }}
           git push
