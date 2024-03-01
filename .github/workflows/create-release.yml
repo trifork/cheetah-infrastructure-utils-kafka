@@ -36,6 +36,8 @@ jobs:
         with:
           image-name: cheetah-infrastructure-utils-kafka
           TRIFORK_GITHUB_PAT: ${{ secrets.WRITE_PACKAGE_PAT }}
+          KAMSTRUP_GITLAB_PAT: ${{ secrets.KAMSTRUP_GITLAB_PAT }}
+          KAMSTRUP_AZURE_PAT: ${{ secrets.KAMSTRUP_ACR_SECRET }}
 
       - name: Get version
         id: get-version
@@ -97,7 +99,7 @@ jobs:
         id: get-checksum
         run: echo checksum=${{ hashFiles('./target/*.jar') }} >> $GITHUB_OUTPUT
 
-  create-release:
+  create-github-release:
     needs: [create-release-docker, create-release-maven]
     runs-on: ubuntu-latest
     steps:
