@@ -8,7 +8,7 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn -B package
 
-FROM quay.io/strimzi/kafka:0.39.0-kafka-3.6.1
+FROM quay.io/strimzi/kafka:0.40.0-kafka-3.6.1
 
 LABEL version="strimzi-0.39.0-kafka-3.6.1-trifork-1.5.0"
 
