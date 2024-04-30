@@ -1,6 +1,8 @@
-# Cheetah Kafka Authorizer
+# Cheetah KRaft Kafka Authorizer
 
-`CheetahKafkaAuthorizer` is used for claim based access to Kafka. It uses `OAuthKafkaPrincipalBuilder` from <https://github.com/strimzi/strimzi-kafka-oauth/tree/main>. The `OAuthKafkaPrincipalBuilder` extracts the JWT from the request and creates a `OAuthKafkaPrincipal` which is used by `CheetahKafkaAuthorizer` to authorize the request.
+`KRaftAuthorizer` is used for claim-based access to Kafka. It uses `OAuthKafkaPrincipalBuilder` from <https://github.com/strimzi/strimzi-kafka-oauth/tree/main>. The `OAuthKafkaPrincipalBuilder` extracts the JWT from the request and creates an `OAuthKafkaPrincipal` which is used by `KRaftAuthorizer` to authorize the request.
+
+> `KRaftAuthorizer` uses the same logic as `CheetahKafkaAuthorizer`. The `KRaftAuthorizer` is adapted to work with Kafka ran in KRaft mode (without Zookeeper).
 
 Access is expressed through claims in a JWT with the following pattern:
 
@@ -13,7 +15,7 @@ Access is expressed through claims in a JWT with the following pattern:
 }
 ```
 
-The `topics` claim is a comma separated list of topic access. Each access is a string with the following pattern:
+The `topics` claim is a comma-separated list of topic access. Each access is a string with the following pattern:
 
 `<prefix>_<topic-name>_<operation>`
 
@@ -28,7 +30,7 @@ Example: `kafka_mytopic_describe-configs` will be transformed into `DESCRIBE_CON
 
 ### Topics
 
-The `<operations>` acts as a operation group which assigns additional permissions:
+The `<operations>` acts as an operation group that assigns additional permissions:
 
 Claimed Operations (groups):
 * WRITE
@@ -59,7 +61,7 @@ Example `kafka_mytopic_write`
 | Group          | DESCRIBE                |
 | Cluster        | IDEMPOTENT_WRITE        |
 
-The `write` operation is a special case as it allows both WRITE and DESCRIBE on the topic and group. It is also required to have write accesss to the cluster to allow idempotent producers to produce data to Kafka.  
+The `write` operation is a special case as it allows both WRITE and DESCRIBE on the topic and group. It is also required to have write access to the cluster to allow idempotent producers to produce data to Kafka.  
 Use this for services that produce data to Kafka.
 
 #### Type: ALL
@@ -76,15 +78,15 @@ The `all` operation is a special case as it allows all operations on the topic. 
 
 ### Cluster
 
-if you write <prefix>_cluster_<operation> in the claim, it will be interpreted as a cluster operation, as cluster is a special keyword. The operation will be directly translated into the kafka operation.
+If you write <prefix>_cluster_<operation> in the claim, it will be interpreted as a cluster operation, as cluster is a special keyword. The operation will be directly translated into the Kafka operation.
 
 ## Workflow
 
-Workflow for CheetahKafkaAuthorizer:
+Workflow for KRaftAuthorizer:
 
-```plantuml:cheetahkafkaauthorizer-workflow
+```plantuml:kraftauthorizer-workflow
 @startuml
-title CheetahKafkaAuthorizer Workflow
+title KRaftAuthorizer Workflow
 
 start
 
@@ -109,7 +111,7 @@ stop
 @enduml
 ```
 
-![](./docs/cheetahkafkaauthorizer-workflow.svg)
+![](./docs/authorizer-workflow.svg)
 
 # Deployment
 
@@ -119,7 +121,7 @@ Configure the Claim in JWT to look for topic access by setting:
 If the claims have a prefix before the topic name (i.e. `Kafka_MyTopicName_Read` ), this can be configured by setting:
 `cheetah.authorization.prefix=<prefix>`
 
-If the claim is a list of accesses instead of a string of comma seperated accesses you can set:
+If the claim is a list of accesses instead of a string of comma-separated accesses you can set
 `cheetah.authorization.claim.is-list=true`
 
 To use the Authorizer package the project using maven:
@@ -131,10 +133,10 @@ Then
 `docker build . -t my-kafka`
 
 ## Logging
-The following types of info is logged on different log levels:
+The following types of info are logged on different log levels:
 ### DEBUG
 * SuperUsers(e.g. kafka-entity-topic-operator, kafka-exporter) accesses.
 ### INFO
-* JWT claim has entries which does not follow correct pattern for topic access <prefix>_<topic-name>_<operation>.
+* JWT claim has entries that do not follow the correct pattern for topic access `<prefix>_<topic-name>_<operation>`.
 ### WARN
 * JWT does not have the required claim.
