@@ -31,7 +31,6 @@ import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import kafka.security.authorizer.AclEntry;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -278,7 +277,6 @@ public class KRaftAuthorizer implements ClusterMetadataAuthorizer {
         if (isClaimList) {
             BearerTokenWithPayload jwt = principal.getJwt();
             JsonNode topicClaim = jwt.getClaimsJSON().get(topicClaimName);
-            ObjectNode payload = jwt.getClaimsJSON();
             Iterator<JsonNode> iterator = topicClaim.elements();
             while (iterator.hasNext()) {
                 result.add(iterator.next().asText());
