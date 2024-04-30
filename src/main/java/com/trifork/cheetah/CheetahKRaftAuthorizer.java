@@ -40,8 +40,8 @@ import scala.collection.JavaConverters;
 
 
 
-public class KRaftAuthorizer implements ClusterMetadataAuthorizer {
-    static final Logger LOG = LoggerFactory.getLogger(KRaftAuthorizer.class.getName());
+public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
+    static final Logger LOG = LoggerFactory.getLogger(CheetahKRaftAuthorizer.class.getName());
     private String topicClaimName;
     private String prefix;
     private boolean isClaimList;
@@ -257,7 +257,7 @@ public class KRaftAuthorizer implements ClusterMetadataAuthorizer {
 
     @Override
     public String toString() {
-        return KRaftAuthorizer.class.getSimpleName() + "@" + instanceNumber;
+        return CheetahKRaftAuthorizer.class.getSimpleName() + "@" + instanceNumber;
     }
 
     private List<AuthorizationResult> handleSuperUsers(AuthorizableRequestContext requestContext,

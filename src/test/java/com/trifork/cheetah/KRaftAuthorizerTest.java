@@ -22,10 +22,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import static com.trifork.cheetah.KRaftAuthorizer.checkClusterJwtClaims;
-import static com.trifork.cheetah.KRaftAuthorizer.checkTopicJwtClaims;
-import static com.trifork.cheetah.KRaftAuthorizer.extractTopicAccesses;
-import static com.trifork.cheetah.KRaftAuthorizer.extractClusterAccesses;
+import static com.trifork.cheetah.CheetahKRaftAuthorizer.checkClusterJwtClaims;
+import static com.trifork.cheetah.CheetahKRaftAuthorizer.checkTopicJwtClaims;
+import static com.trifork.cheetah.CheetahKRaftAuthorizer.extractTopicAccesses;
+import static com.trifork.cheetah.CheetahKRaftAuthorizer.extractClusterAccesses;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -36,7 +36,7 @@ class KRaftAuthorizerTest {
 
         @Test
         void CheckAuthorizeFlowSuperUser() {
-                KRaftAuthorizer authorizer = new KRaftAuthorizer();
+                CheetahKRaftAuthorizer authorizer = new CheetahKRaftAuthorizer();
                 authorizer.configure(Map.of("cheetah.authorization.claim.name", "roles",
                                 "cheetah.authorization.claim.is-list", "true",
                                 "cheetah.authorization.prefix", "Kafka_",
@@ -65,7 +65,7 @@ class KRaftAuthorizerTest {
 
         @Test
         void CheckAuthorizeFlowPerformanceTesterAllowTopic() {
-                KRaftAuthorizer authorizer = new KRaftAuthorizer();
+                CheetahKRaftAuthorizer authorizer = new CheetahKRaftAuthorizer();
                 authorizer.configure(Map.of("cheetah.authorization.claim.name", "roles",
                                 "cheetah.authorization.claim.is-list", "true",
                                 "cheetah.authorization.prefix", "Kafka_",
@@ -105,7 +105,7 @@ class KRaftAuthorizerTest {
 
         @Test
         void CheckAuthorizeFlowPerformanceTesterDenyTopic() {
-                KRaftAuthorizer authorizer = new KRaftAuthorizer();
+                CheetahKRaftAuthorizer authorizer = new CheetahKRaftAuthorizer();
                 authorizer.configure(Map.of("cheetah.authorization.claim.name", "roles",
                                 "cheetah.authorization.claim.is-list", "true",
                                 "cheetah.authorization.prefix", "Kafka_",
