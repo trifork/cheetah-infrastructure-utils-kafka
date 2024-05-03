@@ -75,6 +75,9 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
             accesses = extractAccessClaim(principal);
         } catch (Exception e) {
             LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
+            for (var action : actions){
+                super.logAuditMessage(requestContext, action, false);
+            }
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
 
@@ -122,8 +125,14 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
     private List<AuthorizationResult> handleSuperUsers(AuthorizableRequestContext requestContext,
             List<Action> actions) {
         if (super.isSuperUser(requestContext.principal())) {
+            for (var action : actions){
+                super.logAuditMessage(requestContext, action, true);
+            }
             return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
         } else {
+            for (var action : actions){
+                super.logAuditMessage(requestContext, action, false);
+            }
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
     }
