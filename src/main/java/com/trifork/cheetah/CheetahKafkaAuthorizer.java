@@ -62,6 +62,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
 
     @Override
     public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
+
         List<AuthorizationResult> results = new ArrayList<>(actions.size());
         if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
             return handleSuperUsers(requestContext, actions);
@@ -90,14 +91,12 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
 
         for (Action action : actions) {
             if (checkTopicJwtClaims(topicAccesses, action) || checkClusterJwtClaims(clusterAccesses, action)) {
+                super.logAuditMessage(requestContext, action, true);
                 results.add(AuthorizationResult.ALLOWED);
                 continue;
             }
 
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Action was Denied");
-                LOG.debug(action.toString());
-            }
+            super.logAuditMessage(requestContext, action, false);
             results.add(AuthorizationResult.DENIED);
         }
 
@@ -123,9 +122,6 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
     private List<AuthorizationResult> handleSuperUsers(AuthorizableRequestContext requestContext,
             List<Action> actions) {
         if (super.isSuperUser(requestContext.principal())) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("Superuser: %s", requestContext.principal().getName()));
-            }
             return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
         } else {
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
