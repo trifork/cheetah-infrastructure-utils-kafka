@@ -75,6 +75,9 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
             accesses = extractAccessClaim(principal);
         } catch (Exception e) {
             LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
+            for (var action : actions){
+                super.logAuditMessage(requestContext, action, false);
+            }
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
 
