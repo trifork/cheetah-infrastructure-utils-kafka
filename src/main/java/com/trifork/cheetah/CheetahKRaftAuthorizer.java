@@ -202,86 +202,40 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     @Override
     public AuthorizationResult authorizeByResourceType(AuthorizableRequestContext requestContext, AclOperation op,
             ResourceType resourceType) {
-        if (delegate != null) {
-            return delegate.authorizeByResourceType(requestContext, op, resourceType);
-        } else {
+        if (delegate == null) {
             throw new UnsupportedOperationException("ACL delegation not enabled");
         }
-    }
 
-    private List<TopicAccess> extractTopicAccesses(AuthorizableRequestContext requestContext) {
-        if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
-            return Collections.emptyList();
-        }
+        String fullPrincipalName = fullPrincipalName(requestContext.principal());
 
-        OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) requestContext.principal();
+        List<TopicAccess> topicAccesses = extractTopicAccessesFromRequest(requestContext);
+        addAclsFromTopicAccesses(topicAccesses, fullPrincipalName);
 
-        List<String> accesses;
-        try {
-            accesses = extractAccessClaim(principal);
-        } catch (Exception e) {
-            LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
-            return Collections.emptyList();
-        }
-
-        List<String> topicAccessesRaw = accesses.stream()
-                .filter(access -> !access.startsWith(prefix + "_Cluster"))
-                .collect(Collectors.toList());
-        return extractTopicAccesses(topicAccessesRaw, prefix);
+        List<ClusterAccess> clusterAccesses = extractClusterAccessesFromRequest(requestContext);
+        addAclsFromClusterAccesses(clusterAccesses, fullPrincipalName);
+        
+        return delegate.authorizeByResourceType(requestContext, op, resourceType);
     }
 
     @Override
     public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
-        List<AuthorizationResult> results = new ArrayList<>(actions.size());
+        if (delegate == null) {
+            throw new UnsupportedOperationException("ACL delegation not enabled");
+        }
+
         if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
             // TODO non-oauth principal is treated as superuser, might be a vulnerability
             // KafkaPrincipal principal = new KafkaPrincipal("User", "doesntmatter");
             return handleSuperUsers(requestContext, actions);
         }
 
-        OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) requestContext.principal();
+        String fullPrincipalName = fullPrincipalName(requestContext.principal());
 
-        List<String> accesses;
-        try {
-            accesses = extractAccessClaim(principal);
-        } catch (Exception e) {
-            LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
-            return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
-        }
+        List<TopicAccess> topicAccesses = extractTopicAccessesFromRequest(requestContext);
+        addAclsFromTopicAccesses(topicAccesses, fullPrincipalName);
 
-        List<String> topicAccessesRaw = accesses.stream()
-                .filter(access -> !access.startsWith(prefix + "_Cluster"))
-                .collect(Collectors.toList());
-        List<TopicAccess> topicAccesses = extractTopicAccesses(topicAccessesRaw, prefix);
-        String host = "*";
-
-        for (TopicAccess topicAccess : topicAccesses) {
-            if (topicAccess.pattern.endsWith("*")) {
-                int wildcardIndex = topicAccess.pattern.indexOf("*");
-                String patternPrefix = topicAccess.pattern.substring(0, wildcardIndex);
-                delegate.addAcl(Uuid.randomUuid(),
-                        new StandardAcl(ResourceType.TOPIC, patternPrefix, PatternType.PREFIXED,
-                                fullPrincipalName(principal), host, topicAccess.operation, AclPermissionType.ALLOW));
-            } else {
-                // Literal also supports "*"
-                delegate.addAcl(Uuid.randomUuid(),
-                        new StandardAcl(ResourceType.TOPIC, topicAccess.pattern, PatternType.LITERAL,
-                                fullPrincipalName(principal), host, topicAccess.operation, AclPermissionType.ALLOW));
-
-            }
-        }
-
-        List<String> clusterAccessesRaw = accesses.stream()
-                .filter(access -> access.startsWith(prefix + "_Cluster"))
-                .collect(Collectors.toList());
-
-        List<ClusterAccess> clusterAccesses = extractClusterAccesses(clusterAccessesRaw, prefix);
-        for (ClusterAccess clusterAccess : clusterAccesses) {
-            // For clusters we access the cluster, not a specific resource on it
-            delegate.addAcl(Uuid.randomUuid(),
-                    new StandardAcl(ResourceType.CLUSTER, "*", PatternType.LITERAL, fullPrincipalName(principal), host,
-                            clusterAccess.operation, AclPermissionType.ALLOW));
-        }
+        List<ClusterAccess> clusterAccesses = extractClusterAccessesFromRequest(requestContext);
+        addAclsFromClusterAccesses(clusterAccesses, fullPrincipalName);
 
         return delegate.authorize(requestContext, actions);
     }
@@ -436,5 +390,76 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         return validAccesses;
+    }
+
+    private List<TopicAccess> extractTopicAccessesFromRequest(AuthorizableRequestContext requestContext) {
+        if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
+            return Collections.emptyList();
+        }
+
+        OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) requestContext.principal();
+
+        List<String> accesses;
+        try {
+            accesses = extractAccessClaim(principal);
+        } catch (Exception e) {
+            LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
+            return Collections.emptyList();
+        }
+
+        List<String> topicAccessesRaw = accesses.stream()
+                .filter(access -> !access.startsWith(prefix + "_Cluster"))
+                .collect(Collectors.toList());
+        return extractTopicAccesses(topicAccessesRaw, prefix);
+    }
+
+    private List<ClusterAccess> extractClusterAccessesFromRequest(AuthorizableRequestContext requestContext) {
+        if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
+            return Collections.emptyList();
+        }
+
+        OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) requestContext.principal();
+
+        List<String> accesses;
+        try {
+            accesses = extractAccessClaim(principal);
+        } catch (Exception e) {
+            LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
+            return Collections.emptyList();
+        }
+
+        List<String> clusterAccessesRaw = accesses.stream()
+                .filter(access -> access.startsWith(prefix + "_Cluster"))
+                .collect(Collectors.toList());
+        return extractClusterAccesses(clusterAccessesRaw, prefix);
+    }
+
+    private void addAclsFromTopicAccesses(List<TopicAccess> topicAccesses, String fullPrincipalName) {
+        String host = "*";
+        for (TopicAccess topicAccess : topicAccesses) {
+            if (topicAccess.pattern.endsWith("*")) {
+                int wildcardIndex = topicAccess.pattern.indexOf("*");
+                String patternPrefix = topicAccess.pattern.substring(0, wildcardIndex);
+                delegate.addAcl(Uuid.randomUuid(),
+                        new StandardAcl(ResourceType.TOPIC, patternPrefix, PatternType.PREFIXED,
+                                fullPrincipalName, host, topicAccess.operation, AclPermissionType.ALLOW));
+            } else {
+                // Literal also supports "*"
+                delegate.addAcl(Uuid.randomUuid(),
+                        new StandardAcl(ResourceType.TOPIC, topicAccess.pattern, PatternType.LITERAL,
+                                fullPrincipalName, host, topicAccess.operation, AclPermissionType.ALLOW));
+
+            }
+        }
+    }
+
+    private void addAclsFromClusterAccesses(List<ClusterAccess> clusterAccesses, String fullPrincipalName) {
+        String host = "*";
+        for (ClusterAccess clusterAccess : clusterAccesses) {
+            // For clusters we access the cluster, not a specific resource on it
+            delegate.addAcl(Uuid.randomUuid(),
+                    new StandardAcl(ResourceType.CLUSTER, "*", PatternType.LITERAL, fullPrincipalName, host,
+                            clusterAccess.operation, AclPermissionType.ALLOW));
+        }
     }
 }
