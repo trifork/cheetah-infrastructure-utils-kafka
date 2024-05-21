@@ -58,6 +58,8 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
      */
     private final int instanceNumber = INSTANCE_NUMBER_COUNTER.getAndIncrement();
 
+    private static final String STRIP_UNDERSCORES = "^_+|_+$";
+
     private StandardAuthorizer delegate;
 
     @Override
@@ -65,7 +67,12 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         CheetahConfig config = convertToCheetahConfig(configs);
 
         topicClaimName = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_NAME, "topics");
-        prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "").replaceAll("^_+|_+$", "");
+        // Remove underscores from the prefix.
+        // This allows the client to send a prefix such as "Kafka_" and also "Kafka"
+        // This makes sure the prefix is always without underscores and makes it easier to
+        // split the claim into parts later on.
+        prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "").replaceAll(STRIP_UNDERSCORES,
+                "");
         isClaimList = config.getValueAsBoolean(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST, false);
         configureSuperUsers(configs);
 
@@ -213,7 +220,7 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
 
         List<ClusterAccess> clusterAccesses = extractClusterAccessesFromRequest(requestContext);
         addAclsFromClusterAccesses(clusterAccesses, fullPrincipalName);
-        
+
         return delegate.authorizeByResourceType(requestContext, op, resourceType);
     }
 
