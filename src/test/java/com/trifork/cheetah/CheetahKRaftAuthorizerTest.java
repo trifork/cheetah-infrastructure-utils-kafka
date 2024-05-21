@@ -76,6 +76,24 @@ class CheetahKRaftAuthorizerTest {
         assertEquals(List.of(AuthorizationResult.ALLOWED), result);
     }
 
+    @Test
+    void AclsDoNotRemainBetweenRequests() throws Exception {
+        CheetahKRaftAuthorizer authorizer = createAndInitializeStandardAuthorizer();
+        OAuthKafkaPrincipal principal = createPrincipal("bob", List.of("Kafka_*_read"));
+        List<AuthorizationResult> result = authorizer.authorize(
+                new MockAuthorizableRequestContext.Builder().setPrincipal(principal).build(),
+                List.of(newAction(AclOperation.READ, ResourceType.TOPIC, "mytopic")));
+
+        assertEquals(List.of(AuthorizationResult.ALLOWED), result);
+
+        principal = createPrincipal("bob", List.of("Kafka_mytopic_read"));
+        result = authorizer.authorize(
+                new MockAuthorizableRequestContext.Builder().setPrincipal(principal).build(),
+                List.of(newAction(AclOperation.READ, ResourceType.TOPIC, "random")));
+
+        assertEquals(List.of(AuthorizationResult.DENIED), result);
+    }
+
     @TestFactory
     Stream<DynamicTest> TestAuthorize() {
         record Input(String principalName, String allowedRole, AclOperation requestedOperation,

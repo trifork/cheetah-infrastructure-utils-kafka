@@ -6,6 +6,7 @@ import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourceType;
@@ -239,12 +240,17 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         String fullPrincipalName = fullPrincipalName(requestContext.principal());
 
         List<TopicAccess> topicAccesses = extractTopicAccessesFromRequest(requestContext);
-        addAclsFromTopicAccesses(topicAccesses, fullPrincipalName);
+        List<Uuid> topicAclUuids = addAclsFromTopicAccesses(topicAccesses, fullPrincipalName);
 
         List<ClusterAccess> clusterAccesses = extractClusterAccessesFromRequest(requestContext);
-        addAclsFromClusterAccesses(clusterAccesses, fullPrincipalName);
+        List<Uuid> clusterAclUuids = addAclsFromClusterAccesses(clusterAccesses, fullPrincipalName);
 
-        return delegate.authorize(requestContext, actions);
+        List<AuthorizationResult> result = delegate.authorize(requestContext, actions);
+
+        removeAclsFromUuids(topicAclUuids);
+        removeAclsFromUuids(clusterAclUuids);
+
+        return result;
     }
 
     @Override
@@ -441,32 +447,47 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         return extractClusterAccesses(clusterAccessesRaw, prefix);
     }
 
-    private void addAclsFromTopicAccesses(List<TopicAccess> topicAccesses, String fullPrincipalName) {
+    private List<Uuid> addAclsFromTopicAccesses(List<TopicAccess> topicAccesses, String fullPrincipalName) {
         String host = "*";
+        List<Uuid> uuids = new ArrayList<>();
         for (TopicAccess topicAccess : topicAccesses) {
+            Uuid uuid = Uuid.randomUuid();
+            uuids.add(uuid);
             if (topicAccess.pattern.endsWith("*")) {
                 int wildcardIndex = topicAccess.pattern.indexOf("*");
                 String patternPrefix = topicAccess.pattern.substring(0, wildcardIndex);
-                delegate.addAcl(Uuid.randomUuid(),
+                delegate.addAcl(uuid,
                         new StandardAcl(ResourceType.TOPIC, patternPrefix, PatternType.PREFIXED,
                                 fullPrincipalName, host, topicAccess.operation, AclPermissionType.ALLOW));
             } else {
                 // Literal also supports "*"
-                delegate.addAcl(Uuid.randomUuid(),
+                delegate.addAcl(uuid,
                         new StandardAcl(ResourceType.TOPIC, topicAccess.pattern, PatternType.LITERAL,
                                 fullPrincipalName, host, topicAccess.operation, AclPermissionType.ALLOW));
 
             }
         }
+        return uuids;
     }
 
-    private void addAclsFromClusterAccesses(List<ClusterAccess> clusterAccesses, String fullPrincipalName) {
+    private List<Uuid> addAclsFromClusterAccesses(List<ClusterAccess> clusterAccesses, String fullPrincipalName) {
         String host = "*";
+        List<Uuid> uuids = new ArrayList<>();
         for (ClusterAccess clusterAccess : clusterAccesses) {
+            Uuid uuid = Uuid.randomUuid();
+            uuids.add(uuid);
             // For clusters we access the cluster, not a specific resource on it
-            delegate.addAcl(Uuid.randomUuid(),
+            delegate.addAcl(uuid,
                     new StandardAcl(ResourceType.CLUSTER, "*", PatternType.LITERAL, fullPrincipalName, host,
                             clusterAccess.operation, AclPermissionType.ALLOW));
         }
+        return uuids;
     }
+
+    private void removeAclsFromUuids(List<Uuid> uuids) {
+        for (Uuid uuid : uuids) {
+            delegate.removeAcl(uuid);
+        }
+    }
+
 }
