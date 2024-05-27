@@ -56,7 +56,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.PACKAGE_PAT }}
+          password: ${{ secrets.READ_PACKAGE_PAT }}
 
       - name: "Test kafka plugin"
         shell: bash
@@ -66,7 +66,7 @@ jobs:
         working-directory: integrationtests/
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.PACKAGE_PAT }}
+          GITHUB_TOKEN: ${{ secrets.READ_PACKAGE_PAT }}
           DOCKER_REGISTRY: ghcr.io/trifork/
 
       - name: Print logs
