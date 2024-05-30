@@ -215,14 +215,17 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         String fullPrincipalName = fullPrincipalName(requestContext.principal());
-
         List<TopicAccess> topicAccesses = extractTopicAccessesFromRequest(requestContext);
-        addAclsFromTopicAccesses(topicAccesses, fullPrincipalName);
-
+        List<Uuid> topicAclUuids = addAclsFromTopicAccesses(topicAccesses, fullPrincipalName);
         List<ClusterAccess> clusterAccesses = extractClusterAccessesFromRequest(requestContext);
-        addAclsFromClusterAccesses(clusterAccesses, fullPrincipalName);
+        List<Uuid> clusterAclUuids = addAclsFromClusterAccesses(clusterAccesses, fullPrincipalName);
 
-        return delegate.authorizeByResourceType(requestContext, op, resourceType);
+        AuthorizationResult result = delegate.authorizeByResourceType(requestContext, op, resourceType);
+
+        removeAclsFromUuids(topicAclUuids);
+        removeAclsFromUuids(clusterAclUuids);
+
+        return result;
     }
 
     @Override
@@ -232,16 +235,13 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
-            // TODO non-oauth principal is treated as superuser, might be a vulnerability
-            // KafkaPrincipal principal = new KafkaPrincipal("User", "doesntmatter");
+            // If the principal is not OAuth (should be sent over the TLS listeners)
             return handleSuperUsers(requestContext, actions);
         }
 
         String fullPrincipalName = fullPrincipalName(requestContext.principal());
-
         List<TopicAccess> topicAccesses = extractTopicAccessesFromRequest(requestContext);
         List<Uuid> topicAclUuids = addAclsFromTopicAccesses(topicAccesses, fullPrincipalName);
-
         List<ClusterAccess> clusterAccesses = extractClusterAccessesFromRequest(requestContext);
         List<Uuid> clusterAclUuids = addAclsFromClusterAccesses(clusterAccesses, fullPrincipalName);
 
