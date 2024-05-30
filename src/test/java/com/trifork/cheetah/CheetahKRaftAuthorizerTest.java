@@ -40,7 +40,6 @@ import net.sourceforge.argparse4j.impl.Arguments;
 class CheetahKRaftAuthorizerTest {
     @Test
     void CheckAuthorizeFlowSuperUser() {
-        // TODO rework
         CheetahKRaftAuthorizer authorizer = new CheetahKRaftAuthorizer();
         authorizer.configure(Map.of("cheetah.authorization.claim.name", "roles",
                 "cheetah.authorization.claim.is-list", "true",
@@ -66,17 +65,6 @@ class CheetahKRaftAuthorizerTest {
     }
 
     @Test
-    void SampleTest() throws Exception {
-        CheetahKRaftAuthorizer authorizer = createAndInitializeStandardAuthorizer();
-        OAuthKafkaPrincipal principal = createPrincipal("bob", List.of("Kafka_mytopic_read"));
-        List<AuthorizationResult> result = authorizer.authorize(
-                new MockAuthorizableRequestContext.Builder().setPrincipal(principal).build(),
-                List.of(newAction(AclOperation.READ, ResourceType.TOPIC, "mytopic")));
-
-        assertEquals(List.of(AuthorizationResult.ALLOWED), result);
-    }
-
-    @Test
     void AclsDoNotRemainBetweenRequests() throws Exception {
         CheetahKRaftAuthorizer authorizer = createAndInitializeStandardAuthorizer();
         OAuthKafkaPrincipal principal = createPrincipal("bob", List.of("Kafka_*_read"));
@@ -93,6 +81,19 @@ class CheetahKRaftAuthorizerTest {
 
         assertEquals(List.of(AuthorizationResult.DENIED), result);
     }
+
+    @Test
+    void SampleTest() throws Exception {
+        // The test that the TestFactory uses is modeled after this
+        CheetahKRaftAuthorizer authorizer = createAndInitializeStandardAuthorizer();
+        OAuthKafkaPrincipal principal = createPrincipal("bob", List.of("Kafka_mytopic_read"));
+        List<AuthorizationResult> result = authorizer.authorize(
+                new MockAuthorizableRequestContext.Builder().setPrincipal(principal).build(),
+                List.of(newAction(AclOperation.READ, ResourceType.TOPIC, "mytopic")));
+
+        assertEquals(List.of(AuthorizationResult.ALLOWED), result);
+    }
+
 
     @TestFactory
     Stream<DynamicTest> TestAuthorize() {
