@@ -30,16 +30,10 @@ import org.apache.kafka.common.requests.RequestHeader;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
-import org.junit.runner.RunWith;
-
-import net.sourceforge.argparse4j.impl.Arguments;
 
 class CheetahKRaftAuthorizerTest {
     @Test
-    void CheckAuthorizeFlowSuperUser() {
+    void CheckAuthorizeFlowSuperUser() throws Exception {
         CheetahKRaftAuthorizer authorizer = new CheetahKRaftAuthorizer();
         authorizer.configure(Map.of("cheetah.authorization.claim.name", "roles",
                 "cheetah.authorization.claim.is-list", "true",
@@ -60,6 +54,7 @@ class CheetahKRaftAuthorizerTest {
                 1, true, true));
 
         List<AuthorizationResult> result = authorizer.authorize(context, actions);
+        authorizer.close();
         Assertions.assertEquals(result, List.of(AuthorizationResult.ALLOWED));
 
     }

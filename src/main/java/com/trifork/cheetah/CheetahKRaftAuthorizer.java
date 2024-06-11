@@ -6,7 +6,6 @@ import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourceType;
@@ -46,7 +45,6 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     private String topicClaimName;
     private String prefix;
     private boolean isClaimList;
-    private Set<UserSpec> superUsers;
 
     /**
      * A counter used to generate an instance number for each instance of this class
@@ -59,7 +57,7 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
      */
     private final int instanceNumber = INSTANCE_NUMBER_COUNTER.getAndIncrement();
 
-    private static final String STRIP_UNDERSCORES = "^_+|_+$";
+    private static final String STRIP_UNDERSCORES = "(^_+)|(_+$)";
 
     private StandardAuthorizer delegate;
 
@@ -75,7 +73,6 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "").replaceAll(STRIP_UNDERSCORES,
                 "");
         isClaimList = config.getValueAsBoolean(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST, false);
-        configureSuperUsers(configs);
 
         delegate = instantiateStandardAuthorizer();
         delegate.configure(configs);
@@ -104,15 +101,6 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         return new CheetahConfig(p);
-    }
-
-    private void configureSuperUsers(Map<String, ?> configs) {
-        String supers = (String) configs.get(CheetahConfig.CHEETAH_AUTHORIZATION_SUPER_USERS);
-        if (supers != null) {
-            superUsers = Arrays.stream(supers.split(";"))
-                    .map(UserSpec::of)
-                    .collect(Collectors.toSet());
-        }
     }
 
     private StandardAuthorizer instantiateStandardAuthorizer() {
@@ -234,11 +222,6 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
             throw new UnsupportedOperationException("ACL delegation not enabled");
         }
 
-        if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
-            // If the principal is not OAuth (should be sent over the TLS listeners)
-            return handleSuperUsers(requestContext, actions);
-        }
-
         String fullPrincipalName = fullPrincipalName(requestContext.principal());
         List<TopicAccess> topicAccesses = extractTopicAccessesFromRequest(requestContext);
         List<Uuid> topicAclUuids = addAclsFromTopicAccesses(topicAccesses, fullPrincipalName);
@@ -267,19 +250,6 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
 
     private String fullPrincipalName(KafkaPrincipal principal) {
         return principal.getPrincipalType() + ":" + principal.getName();
-    }
-
-    private List<AuthorizationResult> handleSuperUsers(AuthorizableRequestContext requestContext,
-            List<Action> actions) {
-        UserSpec user = new UserSpec(requestContext.principal().getPrincipalType(),
-                requestContext.principal().getName());
-        if (superUsers.contains(user)) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("Granting access to superuser %s", user.getName()));
-            }
-            return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
-        }
-        return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
     }
 
     private List<String> extractAccessClaim(OAuthKafkaPrincipal principal) {
