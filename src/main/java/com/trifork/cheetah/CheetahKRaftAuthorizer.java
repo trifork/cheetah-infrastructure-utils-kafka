@@ -68,7 +68,8 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         topicClaimName = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_NAME, "topics");
         // Remove underscores from the prefix.
         // This allows the client to send a prefix such as "Kafka_" and also "Kafka"
-        // This makes sure the prefix is always without underscores and makes it easier to
+        // This makes sure the prefix is always without underscores and makes it easier
+        // to
         // split the claim into parts later on.
         prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "").replaceAll(STRIP_UNDERSCORES,
                 "");
@@ -137,7 +138,9 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     @Override
     public void completeInitialLoad(Exception e) {
         if (e != null) {
-            e.printStackTrace();
+            if (LOG.isDebugEnabled()) {
+                e.printStackTrace();
+            }
         }
         delegate.completeInitialLoad(e);
     }
