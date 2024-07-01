@@ -13,5 +13,5 @@ FROM quay.io/strimzi/kafka:0.40.0-kafka-3.7.0
 LABEL version="strimzi-0.40.0-kafka-3.7.0-trifork-1.7.0"
 
 USER root:root
-COPY --from=build /app/target/cheetah-kafka-authorizer*.jar /opt/kafka/libs/cheetah-kafka-authorizer.jar
+COPY --from=build /app/target/cheetah-kafka-authorizer*.jar /mnt/kafka/libs/cheetah-kafka-authorizer.jar
 USER 1001
