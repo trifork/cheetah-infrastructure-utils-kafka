@@ -1,18 +1,14 @@
-version: "2.1"
-
 services:
   cheetah.oauth.simulator:
     hostname: cheetahoauthsimulator
     image: ghcr.io/trifork/cheetah-oauth-simulator:1.8.5
-    platform: linux/amd64
     environment:
       #- ASPNETCORE_ENVIRONMENT=Development
       - OAuth__Mode=Asymmetric
       - Simulator__DefaultKafkaRole=*_all
 
   zookeeper:
-    image: quay.io/strimzi/kafka:0.40.0-kafka-3.7.0
-    platform: linux/amd64
+    image: quay.io/strimzi/kafka:0.42.0-kafka-3.7.1
     command:
       [
         "sh",
@@ -29,7 +25,6 @@ services:
     build:
       context: ../
       dockerfile: ./integrationtests/Dockerfile
-    platform: linux/amd64
     hostname: kafka
     mem_limit: 1024m
     command:
@@ -59,8 +54,7 @@ services:
       retries: 10
 
   kafka-testclient:
-    image: quay.io/strimzi/kafka:0.40.0-kafka-3.7.0
-    platform: linux/amd64
+    image: quay.io/strimzi/kafka:0.42.0-kafka-3.7.1
     container_name: kafka-client
     volumes:
       - ./integrationtest.sh:/etc/config/integrationtest.sh
