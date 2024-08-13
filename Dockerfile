@@ -8,9 +8,9 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn -B package
 
-FROM quay.io/strimzi/kafka:0.40.0-kafka-3.7.0
+FROM quay.io/strimzi/kafka:0.42.0-kafka-3.7.1
 
-LABEL version="strimzi-0.40.0-kafka-3.7.0-trifork-1.7.0"
+LABEL version="strimzi-0.42.0-kafka-3.7.1-trifork-1.7.0"
 
 USER root:root
 COPY --from=build /app/target/cheetah-kafka-authorizer*.jar /opt/kafka/libs/cheetah-kafka-authorizer.jar
