@@ -1,25 +1,4 @@
 services:
-  cheetah.oauth.simulator:
-    hostname: cheetahoauthsimulator
-    image: ghcr.io/trifork/cheetah-oauth-simulator:1.8.5
-    environment:
-      #- ASPNETCORE_ENVIRONMENT=Development
-      - OAuth__Mode=Asymmetric
-      - Simulator__DefaultKafkaRole=*_all
-
-  zookeeper:
-    image: quay.io/strimzi/kafka:0.42.0-kafka-3.7.1
-    command:
-      [
-        "sh",
-        "-c",
-        "bin/zookeeper-server-start.sh config/zookeeper.properties"
-      ]
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      LOG_DIR: /tmp/logs
-    mem_limit: 512m
-
   kafka:
     #image: cheetah-infrastructure-utils-kafka:integrationtest
     build:
