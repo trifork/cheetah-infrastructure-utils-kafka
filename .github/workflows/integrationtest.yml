@@ -43,7 +43,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: trifork/cheetah-development-infrastructure
-          ref: v3.0.0
           token: ${{ secrets.READ_PACKAGE_PAT }}
           path: development-infrastructure
   
