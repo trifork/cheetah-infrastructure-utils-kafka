@@ -1,62 +1,58 @@
 name: E2E
 
 on:
-  workflow_dispatch:
+  workflow_call:
   schedule:
-    # * is a special character in YAML so you have to quote this string
-    - cron: "30 0 * * *"
-  pull_request:
-    branches: ["main", "release/**"]
-    types:
-      - labeled
-      - opened
-      - edited
-      - ready_for_review
-      - auto_merge_enabled
-      - synchronize
-      - reopened
+    - cron: "0 3 * * *"
   push:
-    branches: ["main", "release/**"]
+    branches: [ 'main', 'release/v**' ]
+  pull_request:
+    branches: [ 'main', 'release/v**' ]
+    types: [ opened, synchronize, reopened, labeled ]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 # act workflow_dispatch -s GITHUB_TOKEN -W .github/workflows/integrationtest.yml
 jobs:
-  should-run: # seperate step to support ci/cd status checks
-    runs-on: ubuntu-latest
-    outputs:
-      tag-check: ${{ steps.tag-check.outputs.value }}
-      event-name-check: ${{ steps.event-name-check.outputs.value }}
-
-    steps:
-      # the pull request contains the 'e2e-test' label
-      - name: Tag check
-        id: tag-check
-        if: ${{ contains(github.event.pull_request.labels.*.name, 'e2e-test') && !contains(github.event.pull_request.labels.*.name, 'blocked') }}
-        run: echo "value=true" >> "$GITHUB_OUTPUT"
-
-      # not started from a pull-request
-      - name: Check for specific label
-        id: event-name-check
-        if: ${{github.event_name != 'pull_request'}}
-        run: echo "value=true" >> "$GITHUB_OUTPUT"
+  should-run:
+    uses: trifork/cheetah-infrastructure-utils-workflows/.github/workflows/e2e-should-run.yml@main
 
   e2e-test:
     needs: should-run
+    if: ${{ needs.should-run.outputs.should-run }}
+
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ needs.should-run.outputs.event-name-check == 'true' || needs.should-run.outputs.tag-check == 'true' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Log in to the Container registry
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.READ_PACKAGE_PAT }}
+  
+      - name: Checkout trifork/cheetah-development-infrastructure
+        uses: actions/checkout@v4
+        with:
+          repository: trifork/cheetah-development-infrastructure
+          ref: 3.0.0
+          token: ${{ secrets.READ_PACKAGE_PAT }}
+          path: development-infrastructure
+  
+      - name: "Start development infrastructure"
+        working-directory: development-infrastructure/
+        shell: bash
+        run: docker compose up keycloak keycloak-setup -d --build --quiet-pull
+        env:
+          DOCKER_REGISTRY: ghcr.io/trifork/
 
       - name: "Test kafka plugin"
         shell: bash
