@@ -25,6 +25,7 @@ permissions:
 jobs:
   should-run: # seperate step to support ci/cd status checks
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     outputs:
       tag-check: ${{ steps.tag-check.outputs.value }}
       event-name-check: ${{ steps.event-name-check.outputs.value }}
