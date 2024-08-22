@@ -64,6 +64,7 @@ services:
       OAUTH_CLIENT_ID: default-access
       OAUTH_CLIENT_SECRET: default-access-secret
       OAUTH_TOKEN_ENDPOINT_URI: http://keycloak:1852/realms/local-development/protocol/openid-connect/token
+      OAUTH_SCOPE: kafka
 
       # How much data to generate
       COUNTER: 0
