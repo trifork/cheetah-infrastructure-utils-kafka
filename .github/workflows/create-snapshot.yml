@@ -6,6 +6,7 @@ on:
 jobs:
   create-snapshot-docker:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,6 +40,7 @@ jobs:
 
   create-snapshot-maven:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4

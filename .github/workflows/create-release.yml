@@ -22,6 +22,7 @@ jobs:
   create-release-docker:
     needs: verify-release-branch
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     outputs:
       checksum: ${{ steps.get-checksum.outputs.checksum }}
@@ -74,7 +75,7 @@ jobs:
   create-release-maven:
     needs: verify-release-branch
     runs-on: ubuntu-latest
-
+    timeout-minutes: 5
     outputs:
       checksum: ${{ steps.get-checksum.outputs.checksum }}
 
@@ -102,6 +103,7 @@ jobs:
   create-github-release:
     needs: [create-release-docker, create-release-maven]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4

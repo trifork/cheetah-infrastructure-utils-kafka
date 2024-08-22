@@ -34,6 +34,7 @@ jobs:
   linting:
     name: MegaLinter
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       # Git Checkout
       - name: Checkout
