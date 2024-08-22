@@ -62,7 +62,7 @@ services:
 
       TIMEOUT: "${JOB_TIMEOUT:-60s}" # How long the task has to complete
       OAUTH_CLIENT_ID: default-access
-      OAUTH_CLIENT_SECRET: default-access-secret
+      OAUTH_CLIENT_SECRET: default-access-secret # checkov:skip=CKV_SECRET_6:This is not a sensitive secret
       OAUTH_TOKEN_ENDPOINT_URI: http://keycloak:1852/realms/local-development/protocol/openid-connect/token
       OAUTH_SCOPE: kafka
 
