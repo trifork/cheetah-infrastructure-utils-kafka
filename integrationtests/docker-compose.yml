@@ -1,12 +1,4 @@
 services:
-  cheetah.oauth.simulator:
-    hostname: cheetahoauthsimulator
-    image: ghcr.io/trifork/cheetah-oauth-simulator:1.8.5
-    environment:
-      #- ASPNETCORE_ENVIRONMENT=Development
-      - OAuth__Mode=Asymmetric
-      - Simulator__DefaultKafkaRole=*_all
-
   zookeeper:
     image: quay.io/strimzi/kafka:0.42.0-kafka-3.7.1
     command:
@@ -24,7 +16,7 @@ services:
     #image: cheetah-infrastructure-utils-kafka:integrationtest
     build:
       context: ../
-      dockerfile: ./integrationtests/Dockerfile
+      dockerfile: ./Dockerfile
     hostname: kafka
     mem_limit: 1024m
     command:
@@ -36,8 +28,6 @@ services:
     depends_on:
       zookeeper:
         condition: service_started
-      cheetah.oauth.simulator:
-        condition: service_healthy
     ports:
       - "9092:9092" # Requires OAuth2 authentication
       - "9093:9093" # Requires No authentication
@@ -64,8 +54,6 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-      cheetah.oauth.simulator:
-        condition: service_healthy
     environment:
       # The following settings are listed here only to satisfy the image's requirements.
       # We override the image's `command` anyways, hence this container will not start a broker.
@@ -73,9 +61,10 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: ignored
 
       TIMEOUT: "${JOB_TIMEOUT:-60s}" # How long the task has to complete
-      OAUTH_CLIENT_SECRET: test
-      OAUTH_CLIENT_ID: kafka
-      OAUTH_TOKEN_ENDPOINT_URI: http://cheetahoauthsimulator:80/oauth2/token
+      OAUTH_CLIENT_ID: default-access
+      OAUTH_CLIENT_SECRET: default-access-secret # checkov:skip=CKV_SECRET_6:This is not a sensitive secret
+      OAUTH_TOKEN_ENDPOINT_URI: http://keycloak:1852/realms/local-development/protocol/openid-connect/token
+      OAUTH_SCOPE: kafka
 
       # How much data to generate
       COUNTER: 0
@@ -83,3 +72,8 @@ services:
 
       TOPIC_NAME: "test-topic"
       KAFKA__URL: kafka:19092
+
+networks:
+  default:
+    name: "cheetah-infrastructure"
+    external: true
