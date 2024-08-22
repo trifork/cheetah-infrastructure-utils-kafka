@@ -16,7 +16,7 @@ services:
     #image: cheetah-infrastructure-utils-kafka:integrationtest
     build:
       context: ../
-      dockerfile: ./integrationtests/Dockerfile
+      dockerfile: ./Dockerfile
     hostname: kafka
     mem_limit: 1024m
     command:
