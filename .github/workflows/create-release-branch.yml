@@ -30,7 +30,16 @@ jobs:
           git config user.email "cheetahbot@users.noreply.github.com"
 
           git checkout -b release/${{ inputs.version }}
-          git commit --allow-empty -am "Create new release branch release/${{ inputs.version }}"
+
+      - name: Commit release branch creation
+        id: commit-branch
+        uses: qoomon/actions--create-commit@v1
+        with:
+          message: "Create new release branch release/${{ inputs.version }}"
+          allow-empty: true
+
+      - name: Create release branch
+        run: |
           git push --set-upstream origin release/${{ inputs.version }}
 
           git checkout ${{ github.ref_name }}
