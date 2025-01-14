@@ -30,6 +30,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
     private String prefix;
     private boolean isClaimList;
     private static final Logger authorizerLogger = LoggerFactory.getLogger("kafka.authorizer.logger");
+    private Set<KafkaPrincipal> superUsers = new HashSet<>();
 
     @Override
     public void configure(Map<String, ?> configs) {
@@ -38,6 +39,13 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         topicClaimName = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_NAME, "topics");
         prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "");
         isClaimList = config.getValueAsBoolean(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST, false);
+
+        this.superUsers = Optional.ofNullable((String) configs.get(AclAuthorizer.SuperUsersProp()))
+                .filter(str -> !str.isEmpty())
+                .map(str -> Arrays.stream(str.split(";"))
+                        .map(s -> SecurityUtils.parseKafkaPrincipal(s.trim()))
+                        .collect(Collectors.toSet()))
+                .orElse(Collections.emptySet());
         super.configure(configs);
     }
 
@@ -175,6 +183,14 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         } else {
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
+    }
+
+    private boolean isSuperUser(KafkaPrincipal principal) {
+        if (superUsers.contains(principal)) {
+            authorizerLogger.debug("principal = " + principal + " is a super user, allowing operation without checking ACLs.");
+            return true;
+        }
+        return false;
     }
 
     public static List<ClusterAccess> extractClusterAccesses(List<String> accesses, String prefix) {

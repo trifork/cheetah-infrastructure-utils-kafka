@@ -25,10 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
-import kafka.security.authorizer.AclEntry;
+import kafka.security.authorizer.AclAuthorizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -36,8 +37,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.apache.kafka.common.acl.AclOperation.*;
-import scala.collection.JavaConverters;
 
+import scala.collection.JavaConverters;
 
 
 public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
@@ -261,7 +262,7 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     }
 
     private List<AuthorizationResult> handleSuperUsers(AuthorizableRequestContext requestContext,
-            List<Action> actions) {
+                                                       List<Action> actions) {
         UserSpec user = new UserSpec(requestContext.principal().getPrincipalType(), requestContext.principal().getName());
         if (superUsers.contains(user)) {
             if (LOG.isDebugEnabled()) {
@@ -321,7 +322,18 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         // Allow only valid operations for cluster
-        Set<AclOperation> validOps = new HashSet<>(JavaConverters.asJava(AclEntry.supportedOperations(ResourceType.CLUSTER)));
+        //Set<AclOperation> validOps = new HashSet<>(JavaConverters.asJava(AclEntry.supportedOperations(ResourceType.CLUSTER)));
+        Set<AclOperation> validOps = EnumSet.of(
+                AclOperation.CREATE,
+                AclOperation.ALTER,
+                AclOperation.DESCRIBE,
+                AclOperation.CLUSTER_ACTION,
+                AclOperation.DESCRIBE_CONFIGS,
+                AclOperation.ALTER_CONFIGS,
+                AclOperation.IDEMPOTENT_WRITE,
+                AclOperation.ALL,
+                AclOperation.ANY
+        );
         validOps.add(AclOperation.ALL);
         validOps.add(AclOperation.ANY);
         ArrayList<ClusterAccess> validAccesses = new ArrayList<>();
@@ -373,9 +385,20 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         // Allow only valid operations for topics
-        Set<AclOperation> validOps = new HashSet<>(JavaConverters.asJava(AclEntry.supportedOperations(ResourceType.TOPIC)));
-        validOps.add(AclOperation.ALL);
-        validOps.add(AclOperation.ANY);
+        //Set<AclOperation> validOps = new HashSet<>(JavaConverters.asJava(AclEntry.supportedOperations(ResourceType.TOPIC)));
+        Set<AclOperation> validOps = EnumSet.of(
+                AclOperation.READ,
+                AclOperation.WRITE,
+                AclOperation.CREATE,
+                AclOperation.DELETE,
+                AclOperation.ALTER,
+                AclOperation.DESCRIBE,
+                AclOperation.CLUSTER_ACTION,
+                AclOperation.DESCRIBE_CONFIGS,
+                AclOperation.ALTER_CONFIGS,
+                AclOperation.ALL,
+                AclOperation.ANY
+        );
         ArrayList<TopicAccess> validAccesses = new ArrayList<>();
         for (TopicAccess t : result) {
             if (!validOps.contains(t.operation)) {
