@@ -178,7 +178,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
 
     private List<AuthorizationResult> handleSuperUsers(AuthorizableRequestContext requestContext,
             List<Action> actions) {
-        if (super.isSuperUser(requestContext.principal())) {
+        if (isSuperUser(requestContext.principal())) {
             return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
         } else {
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
