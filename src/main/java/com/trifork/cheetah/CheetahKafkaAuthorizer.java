@@ -9,7 +9,6 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.protocol.ApiKeys;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.utils.SecurityUtils;
-import org.apache.kafka.metadata.authorizer.StandardAuthorizer;
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
@@ -40,7 +39,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "");
         isClaimList = config.getValueAsBoolean(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST, false);
 
-        this.superUsers = Optional.ofNullable((String) configs.get(AclAuthorizer.SuperUsersProp()))
+        superUsers = Optional.ofNullable((String) configs.get(AclAuthorizer.SuperUsersProp()))
                 .filter(str -> !str.isEmpty())
                 .map(str -> Arrays.stream(str.split(";"))
                         .map(s -> SecurityUtils.parseKafkaPrincipal(s.trim()))
