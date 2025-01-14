@@ -275,8 +275,8 @@ class KRaftAuthorizerTest {
 
         @Test
         void testIdempotentWriteWithWildcard() {
-                List<TopicAccess> topicAccess = extractTopicAccesses(List.of("*_all"), "");
-                boolean readAccess = checkTopicJwtClaims(topicAccess, new Action(AclOperation.IDEMPOTENT_WRITE,
+                List<ClusterAccess> clusterAccess = extractClusterAccesses(List.of("*_all"), "");
+                boolean readAccess = checkClusterJwtClaims(clusterAccess, new Action(AclOperation.IDEMPOTENT_WRITE,
                                 new ResourcePattern(ResourceType.CLUSTER, "Demo1_Topic", PatternType.LITERAL), 1, false,
                                 false));
                 Assertions.assertTrue(readAccess);
@@ -284,9 +284,9 @@ class KRaftAuthorizerTest {
 
         @Test
         void testDescribeConfigClaimWithCluster() {
-                List<ClusterAccess> topicAccess = extractClusterAccesses(List.of("Kafka_Cluster_describe-configs"),
+                List<ClusterAccess> clusterAccess = extractClusterAccesses(List.of("Kafka_Cluster_describe-configs"),
                                 "Kafka_");
-                boolean result = checkClusterJwtClaims(topicAccess, new Action(AclOperation.DESCRIBE_CONFIGS,
+                boolean result = checkClusterJwtClaims(clusterAccess, new Action(AclOperation.DESCRIBE_CONFIGS,
                                 new ResourcePattern(ResourceType.CLUSTER, "Cluster", PatternType.LITERAL), 1, false,
                                 false));
                 Assertions.assertTrue(result);
