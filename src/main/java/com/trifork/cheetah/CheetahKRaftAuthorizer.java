@@ -6,7 +6,10 @@ import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.acl.AclPermissionType;
+import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourceType;
+import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.metadata.authorizer.AclMutator;
 import org.apache.kafka.metadata.authorizer.ClusterMetadataAuthorizer;
 import org.apache.kafka.metadata.authorizer.StandardAcl;
@@ -35,17 +38,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.apache.kafka.common.acl.AclOperation.*;
 import scala.collection.JavaConverters;
-
-
 
 public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     static final Logger LOG = LoggerFactory.getLogger(CheetahKRaftAuthorizer.class.getName());
     private String topicClaimName;
     private String prefix;
     private boolean isClaimList;
-    private Set<UserSpec> superUsers;
 
     /**
      * A counter used to generate an instance number for each instance of this class
@@ -53,9 +52,12 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     private static final AtomicInteger INSTANCE_NUMBER_COUNTER = new AtomicInteger(1);
 
     /**
-     * An instance number used in {@link #toString()} method, to easily track the number of instances of this class
+     * An instance number used in {@link #toString()} method, to easily track the
+     * number of instances of this class
      */
     private final int instanceNumber = INSTANCE_NUMBER_COUNTER.getAndIncrement();
+
+    private static final String STRIP_UNDERSCORES = "(^_+)|(_+$)";
 
     private StandardAuthorizer delegate;
 
@@ -64,9 +66,14 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         CheetahConfig config = convertToCheetahConfig(configs);
 
         topicClaimName = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_NAME, "topics");
-        prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "");
+        // Remove underscores from the prefix.
+        // This allows the client to send a prefix such as "Kafka_" and also "Kafka"
+        // This makes sure the prefix is always without underscores and makes it easier
+        // to
+        // split the claim into parts later on.
+        prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "").replaceAll(STRIP_UNDERSCORES,
+                "");
         isClaimList = config.getValueAsBoolean(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST, false);
-        configureSuperUsers(configs);
 
         delegate = instantiateStandardAuthorizer();
         delegate.configure(configs);
@@ -97,21 +104,14 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         return new CheetahConfig(p);
     }
 
-    private void configureSuperUsers(Map<String, ?> configs) {
-        String supers = (String) configs.get(CheetahConfig.CHEETAH_AUTHORIZATION_SUPER_USERS);
-        if (supers != null) {
-            superUsers = Arrays.stream(supers.split(";"))
-                    .map(UserSpec::of)
-                    .collect(Collectors.toSet());
-        }
-    }
-
     private StandardAuthorizer instantiateStandardAuthorizer() {
         try {
             LOG.debug("Using StandardAuthorizer (KRaft based) as a delegate");
             return new StandardAuthorizer();
         } catch (Exception e) {
-            throw new ConfigException("KRaft mode detected ('process.roles' configured), but failed to instantiate org.apache.kafka.metadata.authorizer.StandardAuthorizer", e);
+            throw new ConfigException(
+                    "KRaft mode detected ('process.roles' configured), but failed to instantiate org.apache.kafka.metadata.authorizer.StandardAuthorizer",
+                    e);
         }
     }
 
@@ -138,7 +138,9 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     @Override
     public void completeInitialLoad(Exception e) {
         if (e != null) {
-            e.printStackTrace();
+            if (LOG.isDebugEnabled()) {
+                e.printStackTrace();
+            }
         }
         delegate.completeInitialLoad(e);
     }
@@ -168,7 +170,8 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     }
 
     @Override
-    public List<? extends CompletionStage<AclCreateResult>> createAcls(AuthorizableRequestContext requestContext, List<AclBinding> aclBindings) {
+    public List<? extends CompletionStage<AclCreateResult>> createAcls(AuthorizableRequestContext requestContext,
+            List<AclBinding> aclBindings) {
         if (delegate != null) {
             return delegate.createAcls(requestContext, aclBindings);
         } else {
@@ -176,9 +179,9 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
     }
 
-
     @Override
-    public List<? extends CompletionStage<AclDeleteResult>> deleteAcls(AuthorizableRequestContext requestContext, List<AclBindingFilter> aclBindingFilters) {
+    public List<? extends CompletionStage<AclDeleteResult>> deleteAcls(AuthorizableRequestContext requestContext,
+            List<AclBindingFilter> aclBindingFilters) {
         if (delegate != null) {
             return delegate.deleteAcls(requestContext, aclBindingFilters);
         } else {
@@ -196,56 +199,44 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     }
 
     @Override
-    public AuthorizationResult authorizeByResourceType(AuthorizableRequestContext requestContext, AclOperation op, ResourceType resourceType) {
-        if (delegate != null) {
-            return delegate.authorizeByResourceType(requestContext, op, resourceType);
-        } else {
+    public AuthorizationResult authorizeByResourceType(AuthorizableRequestContext requestContext, AclOperation op,
+            ResourceType resourceType) {
+        if (delegate == null) {
             throw new UnsupportedOperationException("ACL delegation not enabled");
         }
+
+        String fullPrincipalName = fullPrincipalName(requestContext.principal());
+        List<TopicAccess> topicAccesses = extractTopicAccessesFromRequest(requestContext);
+        List<Uuid> topicAclUuids = addAclsFromTopicAccesses(topicAccesses, fullPrincipalName);
+        List<ClusterAccess> clusterAccesses = extractClusterAccessesFromRequest(requestContext);
+        List<Uuid> clusterAclUuids = addAclsFromClusterAccesses(clusterAccesses, fullPrincipalName);
+
+        AuthorizationResult result = delegate.authorizeByResourceType(requestContext, op, resourceType);
+
+        removeAclsFromUuids(topicAclUuids);
+        removeAclsFromUuids(clusterAclUuids);
+
+        return result;
     }
 
     @Override
     public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
-        List<AuthorizationResult> results = new ArrayList<>(actions.size());
-        if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
-            return handleSuperUsers(requestContext, actions);
+        if (delegate == null) {
+            throw new UnsupportedOperationException("ACL delegation not enabled");
         }
 
-        OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) requestContext.principal();
+        String fullPrincipalName = fullPrincipalName(requestContext.principal());
+        List<TopicAccess> topicAccesses = extractTopicAccessesFromRequest(requestContext);
+        List<Uuid> topicAclUuids = addAclsFromTopicAccesses(topicAccesses, fullPrincipalName);
+        List<ClusterAccess> clusterAccesses = extractClusterAccessesFromRequest(requestContext);
+        List<Uuid> clusterAclUuids = addAclsFromClusterAccesses(clusterAccesses, fullPrincipalName);
 
-        List<String> accesses;
-        try {
-            accesses = extractAccessClaim(principal);
-        } catch (Exception e) {
-            LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
-            return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
-        }
+        List<AuthorizationResult> result = delegate.authorize(requestContext, actions);
 
-        List<String> topicAccessesRaw = accesses.stream()
-                .filter(access -> !access.startsWith(prefix + "_Cluster"))
-                .collect(Collectors.toList());
+        removeAclsFromUuids(topicAclUuids);
+        removeAclsFromUuids(clusterAclUuids);
 
-        List<String> clusterAccessesRaw = accesses.stream()
-                .filter(access -> access.startsWith(prefix + "_Cluster"))
-                .collect(Collectors.toList());
-
-        List<TopicAccess> topicAccesses = extractTopicAccesses(topicAccessesRaw, prefix);
-        List<ClusterAccess> clusterAccesses = extractClusterAccesses(clusterAccessesRaw, prefix);
-
-        for (Action action : actions) {
-            if (checkTopicJwtClaims(topicAccesses, action) || checkClusterJwtClaims(clusterAccesses, action)) {
-                results.add(AuthorizationResult.ALLOWED);
-                continue;
-            }
-
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Action was Denied");
-                LOG.debug(action.toString());
-            }
-            results.add(AuthorizationResult.DENIED);
-        }
-
-        return results;
+        return result;
     }
 
     @Override
@@ -260,16 +251,8 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         return CheetahKRaftAuthorizer.class.getSimpleName() + "@" + instanceNumber;
     }
 
-    private List<AuthorizationResult> handleSuperUsers(AuthorizableRequestContext requestContext,
-            List<Action> actions) {
-        UserSpec user = new UserSpec(requestContext.principal().getPrincipalType(), requestContext.principal().getName());
-        if (superUsers.contains(user)) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("Granting access to superuser %s", user.getName()));
-            }
-            return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
-        }
-        return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
+    private String fullPrincipalName(KafkaPrincipal principal) {
+        return principal.getPrincipalType() + ":" + principal.getName();
     }
 
     private List<String> extractAccessClaim(OAuthKafkaPrincipal principal) {
@@ -298,7 +281,9 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
                     }
                     continue;
                 }
-                access = access.substring(prefix.length());
+
+                int prefixEnd = access.indexOf('_');
+                access = access.substring(prefixEnd + 1, access.length());
 
                 int splitIndex = access.lastIndexOf('_');
 
@@ -321,7 +306,8 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         // Allow only valid operations for cluster
-        Set<AclOperation> validOps = new HashSet<>(JavaConverters.asJava(AclEntry.supportedOperations(ResourceType.CLUSTER)));
+        Set<AclOperation> validOps = new HashSet<>(
+                JavaConverters.asJava(AclEntry.supportedOperations(ResourceType.CLUSTER)));
         validOps.add(AclOperation.ALL);
         validOps.add(AclOperation.ANY);
         ArrayList<ClusterAccess> validAccesses = new ArrayList<>();
@@ -349,7 +335,8 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
                     }
                     continue;
                 }
-                access = access.substring(prefix.length());
+                int prefixEnd = access.indexOf('_');
+                access = access.substring(prefixEnd + 1, access.length());
 
                 int splitIndex = access.lastIndexOf('_');
 
@@ -373,7 +360,8 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         // Allow only valid operations for topics
-        Set<AclOperation> validOps = new HashSet<>(JavaConverters.asJava(AclEntry.supportedOperations(ResourceType.TOPIC)));
+        Set<AclOperation> validOps = new HashSet<>(
+                JavaConverters.asJava(AclEntry.supportedOperations(ResourceType.TOPIC)));
         validOps.add(AclOperation.ALL);
         validOps.add(AclOperation.ANY);
         ArrayList<TopicAccess> validAccesses = new ArrayList<>();
@@ -390,114 +378,89 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         return validAccesses;
     }
 
-    public static boolean checkTopicJwtClaims(List<TopicAccess> topicAccesses, Action requestedAction) {
-        for (TopicAccess t : topicAccesses) {
-            switch (requestedAction.resourcePattern().resourceType()) {
-                case TOPIC:
-                    if (matchTopicPattern(requestedAction, t) && checkTopicAccess(t.operation, requestedAction))
-                        return true;
-                    break;
-                case CLUSTER: // check for some default cluster actions based on topic claim
-                    if (checkClusterAccess(t.operation, requestedAction))
-                        return true;
-                    break;
-                case GROUP: // check for some default (consumer)group actions based on topic claim
-                    if (checkGroupAccess(t.operation, requestedAction))
-                        return true;
-                    break;
-                default:
-                    break;
+    private List<TopicAccess> extractTopicAccessesFromRequest(AuthorizableRequestContext requestContext) {
+        if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
+            return Collections.emptyList();
+        }
+
+        OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) requestContext.principal();
+
+        List<String> accesses;
+        try {
+            accesses = extractAccessClaim(principal);
+        } catch (Exception e) {
+            LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
+            return Collections.emptyList();
+        }
+
+        List<String> topicAccessesRaw = accesses.stream()
+                .filter(access -> !access.startsWith(prefix + "_Cluster"))
+                .collect(Collectors.toList());
+        return extractTopicAccesses(topicAccessesRaw, prefix);
+    }
+
+    private List<ClusterAccess> extractClusterAccessesFromRequest(AuthorizableRequestContext requestContext) {
+        if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
+            return Collections.emptyList();
+        }
+
+        OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) requestContext.principal();
+
+        List<String> accesses;
+        try {
+            accesses = extractAccessClaim(principal);
+        } catch (Exception e) {
+            LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
+            return Collections.emptyList();
+        }
+
+        List<String> clusterAccessesRaw = accesses.stream()
+                .filter(access -> access.startsWith(prefix + "_Cluster"))
+                .collect(Collectors.toList());
+        return extractClusterAccesses(clusterAccessesRaw, prefix);
+    }
+
+    private List<Uuid> addAclsFromTopicAccesses(List<TopicAccess> topicAccesses, String fullPrincipalName) {
+        String host = "*";
+        List<Uuid> uuids = new ArrayList<>();
+        for (TopicAccess topicAccess : topicAccesses) {
+            Uuid uuid = Uuid.randomUuid();
+            uuids.add(uuid);
+            if (topicAccess.pattern.endsWith("*")) {
+                int wildcardIndex = topicAccess.pattern.indexOf("*");
+                String patternPrefix = topicAccess.pattern.substring(0, wildcardIndex);
+                delegate.addAcl(uuid,
+                        new StandardAcl(ResourceType.TOPIC, patternPrefix, PatternType.PREFIXED,
+                                fullPrincipalName, host, topicAccess.operation, AclPermissionType.ALLOW));
+            } else {
+                // Literal also supports "*"
+                delegate.addAcl(uuid,
+                        new StandardAcl(ResourceType.TOPIC, topicAccess.pattern, PatternType.LITERAL,
+                                fullPrincipalName, host, topicAccess.operation, AclPermissionType.ALLOW));
+
             }
         }
-        return false;
+        return uuids;
     }
 
-    public static boolean checkClusterJwtClaims(List<ClusterAccess> clusterAccesses, Action requestedAction) {
-        for (ClusterAccess c : clusterAccesses) {
-            switch (requestedAction.resourcePattern().resourceType()) {
-                case CLUSTER:
-                    return claimSupportsRequestedAction(c.operation, requestedAction);
-                default:
-                    break;
-            }
+    private List<Uuid> addAclsFromClusterAccesses(List<ClusterAccess> clusterAccesses, String fullPrincipalName) {
+        String host = "*";
+        List<Uuid> uuids = new ArrayList<>();
+        for (ClusterAccess clusterAccess : clusterAccesses) {
+            Uuid uuid = Uuid.randomUuid();
+            uuids.add(uuid);
+            // For clusters we access the cluster, not a specific resource on it
+            delegate.addAcl(uuid,
+                    new StandardAcl(ResourceType.CLUSTER, "*", PatternType.LITERAL, fullPrincipalName, host,
+                            clusterAccess.operation, AclPermissionType.ALLOW));
         }
-        return false;
+        return uuids;
     }
 
-    private static boolean checkGroupAccess(AclOperation claimedOperation, Action requestedAction) {
-        switch (requestedAction.operation()) {
-            case READ:
-                return List.of(ANY, ALL, READ).contains(claimedOperation);
-            case DESCRIBE:
-                return List.of(ANY, ALL, READ, DESCRIBE).contains(claimedOperation);
-            case DELETE:
-                return List.of(ANY, ALL, DELETE).contains(claimedOperation);
-            default:
-                return false;
+    private void removeAclsFromUuids(List<Uuid> uuids) {
+        for (Uuid uuid : uuids) {
+            delegate.removeAcl(uuid);
         }
     }
 
-    private static boolean checkClusterAccess(AclOperation claimedOperation, Action requestedAction) {
-        switch (requestedAction.operation()) {
-            case CREATE:
-                return List.of(ANY, ALL, CREATE).contains(claimedOperation);
-            case CLUSTER_ACTION:
-                return List.of(ANY, ALL, CLUSTER_ACTION).contains(claimedOperation);
-            case DESCRIBE_CONFIGS:
-                return List.of(ANY, ALL, ALTER_CONFIGS, DESCRIBE_CONFIGS).contains(claimedOperation);
-            case ALTER_CONFIGS:
-                return List.of(ANY, ALL, ALTER_CONFIGS).contains(claimedOperation);
-            case IDEMPOTENT_WRITE:
-                return List.of(ANY, ALL, WRITE).contains(claimedOperation);
-            case ALTER:
-                return List.of(ANY, ALL, ALTER).contains(claimedOperation);
-            case DESCRIBE: // Should this add CREATE?
-                return List.of(ANY, ALL, ALTER, DESCRIBE).contains(claimedOperation);
-            default:
-                return false;
-        }
-    }
-
-    private static boolean checkTopicAccess(AclOperation claimedOperation, Action requestedAction) {
-        switch (requestedAction.operation()) {
-            case READ:
-                return List.of(ANY, ALL, READ).contains(claimedOperation);
-            case WRITE:
-                return List.of(ANY, ALL, WRITE).contains(claimedOperation);
-            case CREATE:
-                return List.of(ANY, ALL, CREATE).contains(claimedOperation);
-            case DELETE:
-                return List.of(ANY, ALL, DELETE).contains(claimedOperation);
-            case ALTER:
-                return List.of(ANY, ALL, ALTER).contains(claimedOperation);
-            case DESCRIBE:
-                // READ, WRITE, DELETE, and ALTER implicitly allow DESCRIBE
-                return List.of(ANY, ALL, READ, WRITE, DELETE, ALTER, DESCRIBE).contains(claimedOperation);
-            case DESCRIBE_CONFIGS:
-                // ALTER_CONFIGS implicitly allows DESCRIBE_CONFIGS
-                return List.of(ANY, ALL, ALTER_CONFIGS, DESCRIBE_CONFIGS).contains(claimedOperation);
-            case ALTER_CONFIGS:
-                return List.of(ANY, ALL, ALTER_CONFIGS).contains(claimedOperation);
-            default:
-                return claimSupportsRequestedAction(claimedOperation, requestedAction);
-
-        }
-    }
-
-    private static boolean claimSupportsRequestedAction(AclOperation claimedOperation, Action requestedAction) {
-        return List.of(ANY, ALL).contains(claimedOperation)
-                || requestedAction.operation().equals(claimedOperation);
-    }
-
-    private static boolean matchTopicPattern(Action action, TopicAccess t) {
-        if (t.pattern.endsWith("*")) {
-            return action.resourcePattern().name().startsWith(t.pattern.replace("*", ""));
-        } else if (t.pattern.startsWith("*")) {
-            // This is not part of the default patterns
-            // https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/resource/PatternType.java#L70
-            return action.resourcePattern().name().endsWith((t.pattern.replace("*", "")));
-        } else {
-            return action.resourcePattern().name().equals(t.pattern);
-        }
-    }
 }
