@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
-import kafka.security.authorizer.AclAuthorizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -37,9 +36,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.apache.kafka.common.acl.AclOperation.*;
-
-import scala.collection.JavaConverters;
-
 
 public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     static final Logger LOG = LoggerFactory.getLogger(CheetahKRaftAuthorizer.class.getName());
@@ -322,7 +318,6 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         // Allow only valid operations for cluster
-        //Set<AclOperation> validOps = new HashSet<>(JavaConverters.asJava(AclEntry.supportedOperations(ResourceType.CLUSTER)));
         Set<AclOperation> validOps = EnumSet.of(
                 AclOperation.CREATE,
                 AclOperation.ALTER,
@@ -385,7 +380,6 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
 
         // Allow only valid operations for topics
-        //Set<AclOperation> validOps = new HashSet<>(JavaConverters.asJava(AclEntry.supportedOperations(ResourceType.TOPIC)));
         Set<AclOperation> validOps = EnumSet.of(
                 AclOperation.READ,
                 AclOperation.WRITE,

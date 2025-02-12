@@ -73,11 +73,9 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         return new CheetahConfig(p);
     }
 
-    //TODO Change back
     private void logCustomAuditMessage(AuthorizableRequestContext requestContext, Action action, boolean authorized) {
-
         KafkaPrincipal principal = requestContext.principal();
-        String operation  = SecurityUtils.operationName(action.operation());
+        String operation = SecurityUtils.operationName(action.operation());
         String host = requestContext.clientAddress().getHostAddress();
         String resourceType = SecurityUtils.resourceTypeName(action.resourcePattern().resourceType());
         String resource = resourceType + RESOURCE_SEPARATOR + action.resourcePattern().patternType() + RESOURCE_SEPARATOR + action.resourcePattern().name();
@@ -110,7 +108,6 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
     }
 
 
-
     @Override
     public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
 
@@ -126,8 +123,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
             accesses = extractAccessClaim(principal);
         } catch (Exception e) {
             LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
-            for (var action : actions){
-               // super.logAuditMessage(requestContext, action, false);
+            for (var action : actions) {
                 logCustomAuditMessage(requestContext, action, false);
 
             }
@@ -176,7 +172,7 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
     }
 
     private List<AuthorizationResult> handleSuperUsers(AuthorizableRequestContext requestContext,
-            List<Action> actions) {
+                                                       List<Action> actions) {
         if (isSuperUser(requestContext.principal())) {
             return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
         } else {
