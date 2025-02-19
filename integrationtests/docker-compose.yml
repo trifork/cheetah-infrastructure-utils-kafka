@@ -1,17 +1,4 @@
 services:
-  zookeeper:
-    image: quay.io/strimzi/kafka:0.45.0-kafka-3.9.0
-    command:
-      [
-        "sh",
-        "-c",
-        "bin/zookeeper-server-start.sh config/zookeeper.properties"
-      ]
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      LOG_DIR: /tmp/logs
-    mem_limit: 512m
-
   kafka:
     #image: cheetah-infrastructure-utils-kafka:integrationtest
     build:
@@ -23,14 +10,14 @@ services:
       [
         "sh",
         "-c",
-        "bin/kafka-server-start.sh /opt/kafka/custom-config/server.properties"
+        "bin/kafka-storage.sh format --ignore-formatted --cluster-id iBzfyk2mT5qGMuO9Yu0WrQ --config /opt/kafka/custom-config/server.properties && bin/kafka-server-start.sh /opt/kafka/custom-config/server.properties",
+
       ]
-    depends_on:
-      zookeeper:
-        condition: service_started
     ports:
       - "9092:9092" # Requires OAuth2 authentication
       - "9093:9093" # Requires No authentication
+    expose:
+      - "9093"
     environment:
       LOG_DIR: "/tmp/logs"
       KAFKA_ROOT_LOGGER_LEVEL: debug
