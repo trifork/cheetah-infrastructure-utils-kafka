@@ -6,7 +6,7 @@
 
     <groupId>com.trifork.cheetah</groupId>
     <artifactId>cheetah-kafka-authorizer</artifactId>
-    <version>strimzi-0.43.0-kafka-3.7.1-trifork-1.7.0</version>
+    <version>strimzi-0.45.0-kafka-3.9.0-trifork-1.7.0</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -20,7 +20,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.13</artifactId>
-            <version>3.7.1</version>
+            <version>3.9.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -43,6 +43,12 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>2.0.16</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.14.2</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

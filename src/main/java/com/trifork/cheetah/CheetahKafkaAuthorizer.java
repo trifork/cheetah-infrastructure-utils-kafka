@@ -6,6 +6,9 @@ import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
 import kafka.security.authorizer.AclAuthorizer;
 
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.protocol.ApiKeys;
+import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.common.utils.SecurityUtils;
 import org.apache.kafka.server.authorizer.Action;
 import org.apache.kafka.server.authorizer.AuthorizableRequestContext;
 import org.apache.kafka.server.authorizer.AuthorizationResult;
@@ -18,12 +21,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.apache.kafka.common.acl.AclOperation.*;
+import static org.apache.kafka.security.authorizer.AclEntry.RESOURCE_SEPARATOR;
 
 public class CheetahKafkaAuthorizer extends AclAuthorizer {
     static final Logger LOG = LoggerFactory.getLogger(CheetahKafkaAuthorizer.class.getName());
     private String topicClaimName;
     private String prefix;
     private boolean isClaimList;
+    private static final Logger authorizerLogger = LoggerFactory.getLogger("kafka.authorizer.logger");
+    private Set<KafkaPrincipal> superUsers = new HashSet<>();
 
     @Override
     public void configure(Map<String, ?> configs) {
@@ -32,6 +38,13 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         topicClaimName = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_NAME, "topics");
         prefix = config.getValue(CheetahConfig.CHEETAH_AUTHORIZATION_PREFIX, "");
         isClaimList = config.getValueAsBoolean(CheetahConfig.CHEETAH_AUTHORIZATION_CLAIM_IS_LIST, false);
+
+        superUsers = Optional.ofNullable((String) configs.get(AclAuthorizer.SuperUsersProp()))
+                .filter(str -> !str.isEmpty())
+                .map(str -> Arrays.stream(str.split(";"))
+                        .map(s -> SecurityUtils.parseKafkaPrincipal(s.trim()))
+                        .collect(Collectors.toSet()))
+                .orElse(Collections.emptySet());
         super.configure(configs);
     }
 
@@ -60,6 +73,41 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         return new CheetahConfig(p);
     }
 
+    private void logCustomAuditMessage(AuthorizableRequestContext requestContext, Action action, boolean authorized) {
+        KafkaPrincipal principal = requestContext.principal();
+        String operation = SecurityUtils.operationName(action.operation());
+        String host = requestContext.clientAddress().getHostAddress();
+        String resourceType = SecurityUtils.resourceTypeName(action.resourcePattern().resourceType());
+        String resource = resourceType + RESOURCE_SEPARATOR + action.resourcePattern().patternType() + RESOURCE_SEPARATOR + action.resourcePattern().name();
+        String authResult = authorized ? "ALLOWED" : "DENIED";
+        String apiKey = ApiKeys.hasId(requestContext.requestType()) ? ApiKeys.forId(requestContext.requestType()).name : String.valueOf(requestContext.requestType());
+        int refCount = action.resourceReferenceCount();
+        String logMessage = String.format("Principal = %s is %s Operation = %s from host = %s on resource %s for resource = %s with resourceRefCount %d",
+                principal, authResult, operation, host, resource, apiKey, refCount);
+
+
+        if (authorized) {
+            // logIfAllowed is true if access is granted to the resource as a result of this authorization.
+            // In this case, log at debug level. If false, no access is actually granted, the result is used
+            // only to determine authorized operations. So log only at trace level.ﬁ
+            if (action.logIfAllowed())
+                authorizerLogger.debug(logMessage);
+            else
+                authorizerLogger.trace(logMessage);
+        } else {
+            // logIfDenied is true if access to the resource was explicitly requested. Since this is an attempt
+            // to access unauthorized resources, log at info level. If false, this is either a request to determine
+            // authorized operations or a filter (e.g for regex subscriptions) to filter out authorized resources.
+            // In this case, log only at trace level.
+            if (action.logIfDenied())
+                authorizerLogger.info(logMessage);
+            else
+                authorizerLogger.trace(logMessage);
+        }
+
+    }
+
+
     @Override
     public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
 
@@ -75,8 +123,9 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
             accesses = extractAccessClaim(principal);
         } catch (Exception e) {
             LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
-            for (var action : actions){
-                super.logAuditMessage(requestContext, action, false);
+            for (var action : actions) {
+                logCustomAuditMessage(requestContext, action, false);
+
             }
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
@@ -94,12 +143,12 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
 
         for (Action action : actions) {
             if (checkTopicJwtClaims(topicAccesses, action) || checkClusterJwtClaims(clusterAccesses, action)) {
-                super.logAuditMessage(requestContext, action, true);
+                logCustomAuditMessage(requestContext, action, true);
                 results.add(AuthorizationResult.ALLOWED);
                 continue;
             }
 
-            super.logAuditMessage(requestContext, action, false);
+            logCustomAuditMessage(requestContext, action, false);
             results.add(AuthorizationResult.DENIED);
         }
 
@@ -123,12 +172,20 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
     }
 
     private List<AuthorizationResult> handleSuperUsers(AuthorizableRequestContext requestContext,
-            List<Action> actions) {
-        if (super.isSuperUser(requestContext.principal())) {
+                                                       List<Action> actions) {
+        if (isSuperUser(requestContext.principal())) {
             return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
         } else {
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
+    }
+
+    private boolean isSuperUser(KafkaPrincipal principal) {
+        if (superUsers.contains(principal)) {
+            authorizerLogger.debug("principal = " + principal + " is a super user, allowing operation without checking ACLs.");
+            return true;
+        }
+        return false;
     }
 
     public static List<ClusterAccess> extractClusterAccesses(List<String> accesses, String prefix) {
