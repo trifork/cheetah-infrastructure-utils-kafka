@@ -1,6 +1,6 @@
 services:
   zookeeper:
-    image: quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
+    image: quay.io/strimzi/kafka:0.45.0-kafka-3.8.0
     command:
       [
         "sh",
@@ -44,7 +44,7 @@ services:
       retries: 10
 
   kafka-testclient:
-    image: quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
+    image: quay.io/strimzi/kafka:0.45.0-kafka-3.8.0
     container_name: kafka-client
     volumes:
       - ./integrationtest.sh:/etc/config/integrationtest.sh
