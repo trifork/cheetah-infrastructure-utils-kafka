@@ -32,7 +32,7 @@ jobs:
 
       - name: Get images
         id: get-images
-        uses: trifork/cheetah-infrastructure-utils/.github/actions/docker/get-images@main
+        uses: trifork/cheetah-infrastructure-utils-workflows/.github/actions/docker/get-images@main
         with:
           image-name: cheetah-infrastructure-utils-kafka
           TRIFORK_GITHUB_PAT: ${{ secrets.WRITE_PACKAGE_PAT }}
