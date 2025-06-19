@@ -138,11 +138,19 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
                 .filter(access -> access.startsWith(prefix + "_Cluster"))
                 .collect(Collectors.toList());
 
+        List<String> groupAccessesRaw = accesses.stream()
+                .filter(access -> access.startsWith(prefix + "_Group_"))
+                .collect(Collectors.toList());
+
         List<TopicAccess> topicAccesses = extractTopicAccesses(topicAccessesRaw, prefix);
         List<ClusterAccess> clusterAccesses = extractClusterAccesses(clusterAccessesRaw, prefix);
+        List<GroupAccess> groupAccesses = extractGroupAccesses(groupAccessesRaw, prefix);
 
         for (Action action : actions) {
-            if (checkTopicJwtClaims(topicAccesses, action) || checkClusterJwtClaims(clusterAccesses, action)) {
+            if (checkTopicJwtClaims(topicAccesses, action) || 
+                checkClusterJwtClaims(clusterAccesses, action) ||
+                checkGroupJwtClaims(groupAccesses, action)) 
+            {
                 logCustomAuditMessage(requestContext, action, true);
                 results.add(AuthorizationResult.ALLOWED);
                 continue;
@@ -259,6 +267,42 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         return result;
     }
 
+    public static List<GroupAccess> extractGroupAccesses(List<String> accesses, String prefix) {
+        ArrayList<GroupAccess> result = new ArrayList<>();
+
+        for (String access : accesses) {
+            try {
+                if (!access.startsWith(prefix)) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(String.format("%s does not have the correct prefix. Skipping...", access));
+                    }
+                    continue;
+                }
+                access = access.substring(prefix.length());
+
+                int splitIndex = access.lastIndexOf('_');
+
+                if (splitIndex == -1) {
+                    if (LOG.isInfoEnabled()) {
+                        LOG.info(String.format(
+                                "%s does not follow correct pattern for group access (<prefix>_Group_<pattern>_<operation>)",
+                                access));
+                    }
+                    continue;
+                }
+
+                String pattern = access.substring("_Group_".length() - 1, splitIndex);
+                String operation = access.substring(splitIndex + 1);
+                result.add(new GroupAccess(pattern, operation));
+            } catch (Exception e) {
+                if (LOG.isWarnEnabled()) {
+                    LOG.warn(String.format("Error decoding group claim: %s %n %s", access, e));
+                }
+            }
+        }
+        return result;
+    }
+
     public static boolean checkTopicJwtClaims(List<TopicAccess> topicAccesses, Action requestedAction) {
         for (TopicAccess t : topicAccesses) {
             switch (requestedAction.resourcePattern().resourceType()) {
@@ -293,12 +337,32 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
         return false;
     }
 
+    public static boolean checkGroupJwtClaims(List<GroupAccess> groupAccesses, Action requestedAction) {
+        for (GroupAccess g : groupAccesses) {
+            switch (requestedAction.resourcePattern().resourceType()) {
+                case GROUP:
+                    if (matchGroupPattern(requestedAction, g) && checkGroupAccess(g.operation, requestedAction))
+                        return true;
+                    break;
+                case CLUSTER: // check for some default cluster actions based on group claim
+                    if (checkClusterAccess(g.operation, requestedAction))
+                        return true;
+                    break;
+                default:
+                    break;
+            }
+        }
+        return false;
+    }
+
     private static boolean checkGroupAccess(AclOperation claimedOperation, Action requestedAction) {
         switch (requestedAction.operation()) {
             case READ:
                 return List.of(ANY, ALL, READ).contains(claimedOperation);
             case DESCRIBE:
                 return List.of(ANY, ALL, READ, WRITE, DESCRIBE).contains(claimedOperation);
+            case ALL:
+                return List.of(ANY, ALL, READ, WRITE, DELETE, ALTER).contains(claimedOperation);
             default:
                 return false;
         }
@@ -336,6 +400,22 @@ public class CheetahKafkaAuthorizer extends AclAuthorizer {
             return action.resourcePattern().name().endsWith((t.pattern.replace("*", "")));
         } else {
             return action.resourcePattern().name().equals(t.pattern);
+        }
+    }
+
+    private static boolean matchGroupPattern(Action action, GroupAccess g) {
+        String requestedName = action.resourcePattern().name();
+        String claimPattern = g.pattern;
+        
+        // Handle wildcards in pattern
+        if (claimPattern.equals("*")) {
+            return true; // Matches all groups
+        } else if (claimPattern.endsWith("*")) {
+            return requestedName.startsWith(claimPattern.substring(0, claimPattern.length() - 1));
+        } else if (claimPattern.startsWith("*")) {
+            return requestedName.endsWith(claimPattern.substring(1));
+        } else {
+            return requestedName.equals(claimPattern);
         }
     }
 

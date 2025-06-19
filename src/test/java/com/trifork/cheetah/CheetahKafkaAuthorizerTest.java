@@ -14,8 +14,12 @@ import static com.trifork.cheetah.CheetahKafkaAuthorizer.checkClusterJwtClaims;
 import static com.trifork.cheetah.CheetahKafkaAuthorizer.checkTopicJwtClaims;
 import static com.trifork.cheetah.CheetahKafkaAuthorizer.extractTopicAccesses;
 import static com.trifork.cheetah.CheetahKafkaAuthorizer.extractClusterAccesses;
+import static com.trifork.cheetah.CheetahKafkaAuthorizer.checkGroupJwtClaims;
+import static com.trifork.cheetah.CheetahKafkaAuthorizer.extractGroupAccesses;
 
 class CheetahKafkaAuthorizerTest {
+
+    // Test for topic ACL support
 
     @Test
     void CheckJwtClaimsAllAllow() {
@@ -129,6 +133,8 @@ class CheetahKafkaAuthorizerTest {
         Assertions.assertTrue(readAccess);
     }
 
+    // Test for cluster ACL support
+
     @Test
     void testIdempotentWriteWithWildcard() {
         List<TopicAccess> topicAccess = extractTopicAccesses(List.of("*_all"), "");
@@ -145,4 +151,101 @@ class CheetahKafkaAuthorizerTest {
         Assertions.assertTrue(result);
     }
 
+    // Test for (consumer)group ACL support
+
+    @Test
+    void testExtractGroupAccesses() {
+        List<GroupAccess> groupAccess = extractGroupAccesses(List.of("Kafka_Group_MyGroup_read"), "Kafka_");
+        Assertions.assertEquals(1, groupAccess.size());
+        Assertions.assertEquals("MyGroup", groupAccess.get(0).pattern);
+        Assertions.assertEquals(AclOperation.READ, groupAccess.get(0).operation);
+    }
+
+    @Test
+    void testExtractGroupAccessesWithWildcard() {
+        List<GroupAccess> groupAccess = extractGroupAccesses(List.of("Kafka_Group_My*_read"), "Kafka_");
+        Assertions.assertEquals(1, groupAccess.size());
+        Assertions.assertEquals("My*", groupAccess.get(0).pattern);
+        Assertions.assertEquals(AclOperation.READ, groupAccess.get(0).operation);
+    }
+
+    @Test
+    void testCheckGroupJwtClaimsExactMatch() {
+        List<GroupAccess> groupAccesses = extractGroupAccesses(List.of("Kafka_Group_MyGroup_read"), "Kafka_");
+        boolean result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.READ,
+                new ResourcePattern(ResourceType.GROUP, "MyGroup", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
+    }
+
+    @Test
+    void testCheckGroupJwtClaimsWildcardSuffix() {
+        List<GroupAccess> groupAccesses = extractGroupAccesses(List.of("Kafka_Group_My*_read"), "Kafka_");
+        boolean result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.READ,
+                new ResourcePattern(ResourceType.GROUP, "MyConsumerGroup", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
+    }
+
+    @Test
+    void testCheckGroupJwtClaimsWildcardPrefix() {
+        List<GroupAccess> groupAccesses = extractGroupAccesses(List.of("Kafka_Group_*Group_read"), "Kafka_");
+        boolean result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.READ,
+                new ResourcePattern(ResourceType.GROUP, "ConsumerGroup", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
+    }
+
+    @Test
+    void testCheckGroupJwtClaimsAllWildcard() {
+        List<GroupAccess> groupAccesses = extractGroupAccesses(List.of("Kafka_Group_*_read"), "Kafka_");
+        boolean result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.READ,
+                new ResourcePattern(ResourceType.GROUP, "AnyGroup", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
+    }
+
+    @Test
+    void testCheckGroupJwtClaimsDeny() {
+        List<GroupAccess> groupAccesses = extractGroupAccesses(List.of("Kafka_Group_MyGroup_read"), "Kafka_");
+        boolean result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.READ,
+                new ResourcePattern(ResourceType.GROUP, "OtherGroup", PatternType.LITERAL), 1, false, false));
+        Assertions.assertFalse(result);
+    }
+
+    @Test
+    void testCheckGroupJwtClaimsDenyOperation() {
+        List<GroupAccess> groupAccesses = extractGroupAccesses(List.of("Kafka_Group_MyGroup_read"), "Kafka_");
+        boolean result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.WRITE,
+                new ResourcePattern(ResourceType.GROUP, "MyGroup", PatternType.LITERAL), 1, false, false));
+        Assertions.assertFalse(result);
+    }
+
+    @Test
+    void testCheckGroupJwtClaimsDescribeAccess() {
+        List<GroupAccess> groupAccesses = extractGroupAccesses(List.of("Kafka_Group_MyGroup_read"), "Kafka_");
+        boolean result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.DESCRIBE,
+                new ResourcePattern(ResourceType.GROUP, "MyGroup", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
+    }
+
+    @Test
+    void testCheckGroupJwtClaimsAllOperation() {
+        List<GroupAccess> groupAccesses = extractGroupAccesses(List.of("Kafka_Group_MyGroup_all"), "Kafka_");
+        boolean result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.READ,
+                new ResourcePattern(ResourceType.GROUP, "MyGroup", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
+
+        result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.DESCRIBE,
+                new ResourcePattern(ResourceType.GROUP, "MyGroup", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
+
+        result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.ALL,
+                new ResourcePattern(ResourceType.GROUP, "MyGroup", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
+    }
+
+    @Test
+    void testCheckGroupJwtClaimsWithUnderscore() {
+        List<GroupAccess> groupAccesses = extractGroupAccesses(List.of("Kafka_Group_My_Group_read"), "Kafka_");
+        boolean result = checkGroupJwtClaims(groupAccesses, new Action(AclOperation.READ,
+                new ResourcePattern(ResourceType.GROUP, "My_Group", PatternType.LITERAL), 1, false, false));
+        Assertions.assertTrue(result);
+    }
 }
