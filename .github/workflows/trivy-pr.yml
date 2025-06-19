@@ -24,4 +24,4 @@ jobs:
 
       - name: Generate vulnerability changes report
         if: ${{ steps.changed-files.outputs.any_changed == 'true' }}
-        uses: trifork/cheetah-infrastructure-utils/.github/actions/docker/trivy-vulnerability-changes-pr@main
+        uses: trifork/cheetah-infrastructure-utils-workflows/.github/actions/docker/trivy-vulnerability-changes-pr@main
