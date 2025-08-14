@@ -38,7 +38,7 @@ jobs:
     steps:
       # Git Checkout
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           token: ${{ secrets.READ_PACKAGE_PAT }}
           fetch-depth: 2 # If you use VALIDATE_ALL_CODEBASE = true, you can remove this line to improve performances
