@@ -13,7 +13,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
         <git.repository>trifork/cheetah-infrastructure-utils-kafka</git.repository>
-        <strimzi.kafka.oauth.version>0.15.0</strimzi.kafka.oauth.version>
+        <strimzi.kafka.oauth.version>0.16.2</strimzi.kafka.oauth.version>
     </properties>
 
     <dependencies>
@@ -36,7 +36,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.12.2</version>
+            <version>5.13.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -47,7 +47,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.17.0</version>
+            <version>5.19.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
