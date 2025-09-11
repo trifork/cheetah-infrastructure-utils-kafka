@@ -31,7 +31,7 @@ services:
       retries: 10
 
   kafka-testclient:
-    image: quay.io/strimzi/kafka:0.45.0-kafka-3.9.0
+    image: quay.io/strimzi/kafka:0.47.0-kafka-3.9.1
     container_name: kafka-client
     volumes:
       - ./integrationtest.sh:/etc/config/integrationtest.sh
