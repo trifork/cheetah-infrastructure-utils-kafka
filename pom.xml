@@ -13,7 +13,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
         <git.repository>trifork/cheetah-infrastructure-utils-kafka</git.repository>
-        <strimzi.kafka.oauth.version>0.16.2</strimzi.kafka.oauth.version>
+        <strimzi.kafka.oauth.version>0.17.0</strimzi.kafka.oauth.version>
     </properties>
 
     <dependencies>
