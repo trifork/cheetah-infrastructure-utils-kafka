@@ -3,7 +3,7 @@ package com.trifork.cheetah;
 import io.strimzi.kafka.oauth.common.BearerTokenWithPayload;
 import io.strimzi.kafka.oauth.common.ConfigUtil;
 import io.strimzi.kafka.oauth.server.OAuthKafkaPrincipal;
-import kafka.security.authorizer.AclAuthorizer;
+import org.apache.kafka.server.authorizer.StandardAuthorizer;
 
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.protocol.ApiKeys;
@@ -21,9 +21,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.apache.kafka.common.acl.AclOperation.*;
-import static org.apache.kafka.security.authorizer.AclEntry.RESOURCE_SEPARATOR;
+import static org.apache.kafka.common.resource.ResourcePattern.RESOURCE_SEPARATOR;
 
-public class CheetahKafkaAuthorizer extends AclAuthorizer {
+public class CheetahKafkaAuthorizer extends StandardAuthorizer {
     static final Logger LOG = LoggerFactory.getLogger(CheetahKafkaAuthorizer.class.getName());
     private String topicClaimName;
     private String prefix;
