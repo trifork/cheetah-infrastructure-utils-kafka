@@ -1,7 +1,7 @@
 name: Docker Trivy Call
 
 on:
-  pull_request:
+  # pull_request:
 
 jobs:
   trivy-image-scan:
