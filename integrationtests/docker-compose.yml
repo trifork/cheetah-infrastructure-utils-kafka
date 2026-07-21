@@ -24,7 +24,7 @@ services:
     volumes:
       - ./config/kafka/server.properties:/opt/kafka/custom-config/server.properties
     healthcheck:
-      test: nc -z kafka 19092 || exit -1
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/kafka/19092' || exit 1"]
       start_period: 15s
       interval: 5s
       timeout: 10s
