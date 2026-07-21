@@ -24,14 +24,14 @@ services:
     volumes:
       - ./config/kafka/server.properties:/opt/kafka/custom-config/server.properties
     healthcheck:
-      test: nc -z kafka 19092 || exit -1
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/kafka/19092' || exit 1"]
       start_period: 15s
       interval: 5s
       timeout: 10s
       retries: 10
 
   kafka-testclient:
-    image: quay.io/strimzi/kafka:0.51.0-kafka-4.1.0
+    image: quay.io/strimzi/kafka:1.0.1-kafka-4.1.0
     container_name: kafka-client
     volumes:
       - ./integrationtest.sh:/etc/config/integrationtest.sh
