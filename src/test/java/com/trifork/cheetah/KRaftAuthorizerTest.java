@@ -46,7 +46,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
@@ -229,28 +228,43 @@ class KRaftAuthorizerTest {
      * Kafka authorizes on several request threads at once (num.io.threads, default 8), while its metadata thread
      * adds and removes stored ACLs. Adding and removing role ACLs on the shared delegate per request makes this test
      * fail with wrong decisions, exceptions and lost ACL changes; this is why the private authorizers exist.
+     * Each thread makes a fixed number of requests, so the test does not depend on machine speed (the snapshot
+     * build runs the tests under emulation for arm64).
      */
     @Test
     void parallelRequestsAndAclChangesStayCorrect() throws Exception {
         int threads = 8;
+        int requestsPerThread = 500;
         int users = 20;
-        AtomicBoolean stop = new AtomicBoolean();
-        AtomicLong requests = new AtomicLong();
         AtomicLong wrong = new AtomicLong();
+        AtomicLong aclChanges = new AtomicLong();
         ConcurrentLinkedQueue<Throwable> errors = new ConcurrentLinkedQueue<>();
-        CountDownLatch done = new CountDownLatch(threads + 1);
+        CountDownLatch requestsDone = new CountDownLatch(threads);
+
+        Thread metadataThread = new Thread(() -> {
+            try {
+                do {
+                    Uuid id = Uuid.randomUuid();
+                    authorizer.addAcl(id, storedAcl("tls-user", "churn", AclPermissionType.ALLOW));
+                    authorizer.removeAcl(id);
+                    aclChanges.incrementAndGet();
+                } while (requestsDone.getCount() > 0);
+            } catch (Throwable e) {
+                errors.add(e);
+            }
+        });
+        metadataThread.start();
 
         for (int t = 0; t < threads; t++) {
             final int thread = t;
             new Thread(() -> {
                 try {
-                    for (long i = 0; !stop.get(); i++) {
-                        int u = (int) ((thread * 3 + i) % users);   // threads overlap on users
+                    for (int i = 0; i < requestsPerThread; i++) {
+                        int u = (thread * 3 + i) % users;   // threads overlap on users
                         AuthorizableRequestContext user = oauth("svc-" + u, "Kafka_svc-" + u + "_read");
                         boolean ownTopic = i % 2 == 0;
                         String topic = "svc-" + (ownTopic ? u : (u + 1) % users);
                         AuthorizationResult result = authorize(user, AclOperation.READ, ResourceType.TOPIC, topic);
-                        requests.incrementAndGet();
                         if (result != (ownTopic ? ALLOWED : DENIED)) {
                             wrong.incrementAndGet();
                         }
@@ -258,32 +272,17 @@ class KRaftAuthorizerTest {
                 } catch (Throwable e) {
                     errors.add(e);
                 } finally {
-                    done.countDown();
+                    requestsDone.countDown();
                 }
             }).start();
         }
-        new Thread(() -> {
-            try {
-                while (!stop.get()) {
-                    Uuid id = Uuid.randomUuid();
-                    authorizer.addAcl(id, storedAcl("tls-user", "churn", AclPermissionType.ALLOW));
-                    authorizer.removeAcl(id);
-                    Thread.sleep(1);
-                }
-            } catch (Throwable e) {
-                errors.add(e);
-            } finally {
-                done.countDown();
-            }
-        }).start();
 
-        Thread.sleep(1500);
-        stop.set(true);
-        assertTrue(done.await(30, TimeUnit.SECONDS), "threads did not finish");
+        assertTrue(requestsDone.await(5, TimeUnit.MINUTES), "request threads did not finish");
+        metadataThread.join(TimeUnit.MINUTES.toMillis(1));
 
         assertEquals(List.of(), List.copyOf(errors));
-        assertEquals(0, wrong.get(), "wrong decisions out of " + requests.get());
-        assertTrue(requests.get() > 1000, "too few requests to be meaningful: " + requests.get());
+        assertEquals(0, wrong.get(), "wrong decisions out of " + threads * requestsPerThread);
+        assertTrue(aclChanges.get() > 0, "the metadata thread did not change any ACLs");
         assertEquals(0, authorizer.aclCount());
     }
 
