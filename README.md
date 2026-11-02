@@ -1,117 +1,120 @@
 # Cheetah KRaft Kafka Authorizer
 
-`KRaftAuthorizer` is used for claim-based access to Kafka. It uses `OAuthKafkaPrincipalBuilder` from <https://github.com/strimzi/strimzi-kafka-oauth/tree/main>. The `OAuthKafkaPrincipalBuilder` extracts the JWT from the request and creates an `OAuthKafkaPrincipal` which is used by `KRaftAuthorizer` to authorize the request.
+`CheetahKRaftAuthorizer` gives OAuth clients access to Kafka based on roles in their JWT. It uses `OAuthKafkaPrincipalBuilder` from <https://github.com/strimzi/strimzi-kafka-oauth/tree/main>, which validates the JWT and creates an `OAuthKafkaPrincipal` for each connection.
 
-> `KRaftAuthorizer` uses the same logic as `CheetahKafkaAuthorizer`. The `KRaftAuthorizer` is adapted to work with Kafka ran in KRaft mode (without Zookeeper).
+The authorizer does not make access decisions itself. It translates the roles of an OAuth principal into Kafka ACLs, and Kafka's own `StandardAuthorizer` decides with those ACLs plus any ACLs stored in KRaft. Because Kafka decides, Kafka also writes its normal authorization audit log (see [Logging](#logging)), and `super.users` and stored ACLs behave exactly as in a plain Kafka cluster.
 
-Access is expressed through claims in a JWT with the following pattern:
+> `CheetahKafkaAuthorizer` is a deprecated alias of `CheetahKRaftAuthorizer`, kept for configurations that still use the old class name.
+
+Access is expressed through a claim in the JWT, either a comma-separated string or a list:
 
 ```json
 {
   "iat": 1679325503,
   "sub": "a252a70e-363e-42aa-a62b-6f7f54d4c8bd",
   ...
-  "topics": "*_all, MyTopic_all, YourTopic_read"
+  "roles": ["Kafka_*_read", "Kafka_MyTopic_all", "Kafka_YourTopic_write"]
 }
 ```
 
-The `topics` claim is a comma-separated list of topic access. Each access is a string with the following pattern:
+Each role has the following pattern:
 
 `<prefix>_<topic-name>_<operation>`
 
-The `<prefix>` is optional and can be configured. The `<topic-name>` is the name of the topic to access. The `<operation>` is the operation to perform on the topic.
+The `<prefix>` is optional and can be configured; it is matched with or without the trailing `_`. Roles without the prefix are ignored. The `<topic-name>` may contain `_`; the operation is the part after the last `_`.
 
-The `<operation>` will be directly translated into the Kafka operation. See <https://docs.confluent.io/platform/current/kafka/authorization.html#operations> for more information.  
+The `<operation>` is translated directly into a Kafka ACL operation. See <https://kafka.apache.org/documentation/#operations_in_kafka> for the operations each request needs.
 
-**NB:** It will be transformed into uppercase before being used and `-` will be replaced with `_`.  
-Example: `kafka_mytopic_describe-configs` will be transformed into `DESCRIBE_CONFIGS` ACL operation for the topic called `mytopic`.
+**NB:** It is transformed into uppercase and `-` is replaced with `_`.
+Example: `Kafka_mytopic_describe-configs` becomes a `DESCRIBE_CONFIGS` ACL for the topic called `mytopic`. `any` is treated as `all`.
+
+The `<topic-name>` can be:
+
+- a topic name, for example `orders`;
+- `*` for all topics;
+- a prefix ending with `*`, for example `orders*` for all topics starting with `orders`.
+
+A `*` anywhere else, for example `*orders`, is not supported by Kafka and the role is ignored.
 
 ## Resource types
 
 ### Topics
 
-The `<operations>` acts as an operation group that assigns additional permissions:
+A role gives the principal an ACL with that operation on the topic. Kafka itself lets `READ`, `WRITE`, `DELETE` and `ALTER` imply `DESCRIBE`, and `ALTER_CONFIGS` imply `DESCRIBE_CONFIGS`.
 
-Claimed Operations (groups):
-* WRITE
-* READ
-* ALL
+To support consumers, some operations also give access to consumer groups. The group name is not checked; access applies to every group.
 
-gives the following permissions in Kafka:
+#### Type: READ
 
-#### TYPE: READ
-
-Example: `kafka_mytopic_read`
+Example: `Kafka_mytopic_read`
 
 | Kafka Resource | Allows requested Action |
 |----------------|-------------------------|
 | Topic          | READ, DESCRIBE          |
 | Group          | READ, DESCRIBE          |
 
-The `read` operation is a special case as it allows both READ and DESCRIBE on the topic and group.
 Use this for services that consume data from Kafka.
 
 #### Type: WRITE
 
-Example `kafka_mytopic_write`
+Example: `Kafka_mytopic_write`
 
 | Kafka Resource | Allows requested Action |
 |----------------|-------------------------|
 | Topic          | WRITE, DESCRIBE         |
-| Group          | DESCRIBE                |
-| Cluster        | IDEMPOTENT_WRITE        |
 
-The `write` operation is a special case as it allows both WRITE and DESCRIBE on the topic and group. It is also required to have write access to the cluster to allow idempotent producers to produce data to Kafka.  
+Idempotent producers are allowed without a cluster role: Kafka accepts `WRITE` on any topic in place of `IDEMPOTENT_WRITE` on the cluster.
 Use this for services that produce data to Kafka.
 
 #### Type: ALL
 
-Example `kafka_mytopic_all`
+Example: `Kafka_mytopic_all`
 
 | Kafka Resource | Allows requested Action |
 |----------------|-------------------------|
-| Topic          | *                       |
-| Group          | READ, DESCRIBE          |
-| Cluster        | IDEMPOTENT_WRITE        |
+| Topic          | ALL                     |
+| Group          | READ, DESCRIBE, DELETE  |
 
-The `all` operation is a special case as it allows all operations on the topic. This supports producers and consumers and gives them more control over topics, such as altering topic configuration.
+This supports producers and consumers and gives them more control over topics, such as altering topic configuration. It does not give access to the cluster.
+
+`describe` and `delete` roles also give `DESCRIBE` and `DELETE` on groups.
 
 ### Cluster
 
-If you write <prefix>_cluster_<operation> in the claim, it will be interpreted as a cluster operation, as cluster is a special keyword. The operation will be directly translated into the Kafka operation.
+A role of the form `<prefix>_Cluster_<operation>` (`Cluster` is case-insensitive) gives an ACL with that operation on the cluster, for example `Kafka_Cluster_create` or `Kafka_Cluster_describe-configs`. As a consequence, a topic whose name starts with `Cluster_` cannot be addressed by a role.
+
+### Super users and stored ACLs
+
+`super.users` is handled by Kafka and applies to every principal type, including OAuth principals. ACLs created with `kafka-acls` (or Strimzi `KafkaUser` resources) also apply, including `DENY` ACLs, which take precedence over the roles.
 
 ## Workflow
 
-Workflow for KRaftAuthorizer:
+Workflow for CheetahKRaftAuthorizer:
 
 ```plantuml:kraftauthorizer-workflow
 @startuml
-title KRaftAuthorizer Workflow
+title CheetahKRaftAuthorizer Workflow
 
 start
 
-:Check if request principal is an OAuthKafkaPrincipal?;
-if (Yes) then (Yes)
-  :Extract access claims from OAuthKafkaPrincipal;
-  :Extract topic accesses based on access claims and prefix;
-  repeat
-    :Iterate over the list of actions to authorize;
-    :Check if JWT claims match the action;
-    if (Matched) then (Matched)
-      :Allow access;
-    else (Not Matched)
-      :Deny access;
-    endif
-  repeat while (More actions to authorize?);
+if (Initial ACL load complete and principal is an OAuthKafkaPrincipal with roles?) then (Yes)
+  :Translate roles into ACLs for this principal;
+  :Get the private StandardAuthorizer for this set of ACLs from the cache,
+or build one with the stored ACLs plus the role ACLs;
+  :StandardAuthorizer decides and writes the audit log;
 else (No)
-  :Handle super users and return results;
+  :Broker's StandardAuthorizer decides with super.users and stored ACLs,
+and writes the audit log;
 endif
 
 stop
 @enduml
 ```
 
-![](./docs/authorizer-workflow.svg)
+![CheetahKRaftAuthorizer workflow](./docs/kraftauthorizer-workflow.svg)
+
+The private authorizers are needed because Kafka's `StandardAuthorizer` expects ACLs to be changed by a single thread (the metadata thread). Adding the role ACLs to the broker's shared authorizer for each request, from several request threads, loses updates and leaves permissions behind.
+The cache is cleared whenever the stored ACLs change. See [`spike/`](./spike/README.md) for the checks behind this design.
 
 # Deployment
 
@@ -124,6 +127,9 @@ If the claims have a prefix before the topic name (i.e. `Kafka_MyTopicName_Read`
 If the claim is a list of accesses instead of a string of comma-separated accesses you can set
 `cheetah.authorization.claim.is-list=true`
 
+The maximum number of cached private authorizers (default 1000) can be set with
+`cheetah.authorization.cache.max-entries=<number>`. When it is reached, the cache is cleared.
+
 To use the Authorizer package the project using maven:
 
 `mvn package`
@@ -133,10 +139,19 @@ Then
 `docker build . -t my-kafka`
 
 ## Logging
-The following types of info are logged on different log levels:
+
+Kafka's `StandardAuthorizer` writes one audit line per authorized action on the logger `kafka.authorizer.logger`:
+
 ### DEBUG
-* SuperUsers(e.g. kafka-entity-topic-operator, kafka-exporter) accesses.
+
+- Allowed actions, including super users (`based on rule SuperUser`). The logger must be at DEBUG to record them.
+
 ### INFO
-* JWT claim has entries that do not follow the correct pattern for topic access `<prefix>_<topic-name>_<operation>`.
+
+- Denied actions.
+- Roles that do not follow the pattern `<prefix>_<topic-name>_<operation>`, or have an unknown or unsupported operation or wildcard (logger `com.trifork.cheetah`).
+- Building a private authorizer (logger `org.apache.kafka.metadata.authorizer.StandardAuthorizerData`): once per distinct set of roles per broker, and again after stored ACLs change.
+
 ### WARN
-* JWT does not have the required claim.
+
+- JWT does not have the required claim.

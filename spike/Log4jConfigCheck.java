@@ -15,9 +15,9 @@ public class Log4jConfigCheck {
         Logger kafka = LogManager.getLogger("kafka.server.KafkaApis");
 
         // Same text format as Kafka 4.2.0 StandardAuthorizerData.buildAuditMessage.
-        audit.debug("Principal = User:orders-service is Allowed operation = WRITE from host = 10.0.0.25 on resource = Topic:LITERAL:orders for request = PRODUCE with resourceRefCount = 1 based on rule MatchingAcl(acl=x)");
-        audit.debug("Principal = User:CN=my-cluster-kafka is Allowed operation = CLUSTER_ACTION from host = 10.0.0.26 on resource = Cluster:LITERAL:kafka-cluster for request = FETCH with resourceRefCount = 1 based on rule SuperUser");
-        audit.info("Principal = User:orders-service is Denied operation = READ from host = 10.0.0.25 on resource = Topic:LITERAL:secret for request = FETCH with resourceRefCount = 1 based on rule DefaultDeny");
+        audit.debug("Principal = User:orders-service is Allowed operation = WRITE from host = 10.0.0.25 on resource = Topic:LITERAL:orders for request = Produce with resourceRefCount = 1 based on rule MatchingAcl(acl=x)");
+        audit.debug("Principal = User:CN=my-cluster-kafka is Allowed operation = CLUSTER_ACTION from host = 10.0.0.26 on resource = Cluster:LITERAL:kafka-cluster for request = Fetch with resourceRefCount = 1 based on rule SuperUser");
+        audit.info("Principal = User:orders-service is Denied operation = READ from host = 10.0.0.25 on resource = Topic:LITERAL:secret for request = Fetch with resourceRefCount = 1 based on rule DefaultDeny");
         audit.trace("TRACE-SHOULD-NOT-APPEAR");
         op.info("OPERATIONAL-INFO-console-only");
         op.debug("OPERATIONAL-DEBUG-SHOULD-NOT-APPEAR");
