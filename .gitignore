@@ -125,3 +125,7 @@ dmypy.json
 **/.idea/*
 *.iml
 .vscode
+
+# authorizer spike output
+spike/results/
+spike/work/

@@ -1,0 +1,61 @@
+== Environment
+Date: 2026-11-02T10:37:18.5584217+01:00
+Repo: <repo> (branch fix/missing-audit-logging, commit d929d7d)
+Processors: 8
+openjdk version "21.0.9" 2025-10-21 LTS
+OpenJDK Runtime Environment Temurin-21.0.9+10 (build 21.0.9+10-LTS)
+OpenJDK 64-Bit Server VM Temurin-21.0.9+10 (build 21.0.9+10-LTS, mixed mode, sharing)
+
+== Compiling the authorizer and resolving its classpath
+
+
+== AuthzSpike: thread-safety strategies, 1 request threads (takes about 2 minutes)
+JVM 21.0.9+10-LTS, 8 cores, 1 request threads, 40 principals x 5 claim ACLs, 1 action per request
+
+== stored KRaft ACLs: 0, no metadata changes ==
+strategy                                    req/s wrongAllow  wrongDeny exceptions     delegateACLs  notes
+pure-kafka (reference)                    250,091          0          0          0     200 (exp 200)
+PR #83 as is (no lock)                     29,541          0          0          0       0 (exp 0)  add/remove exceptions=0
+(a) lock                                   53,794          0          0          0       0 (exp 0)  skipped duplicates=0
+(b) private authorizer per request         77,174          0          0          0       0 (exp 0)  authorizers built=250188
+(c) private authorizer, cached            738,675          0          0          0       0 (exp 0)  authorizers built=40
+
+== stored KRaft ACLs: 0, metadata churn: 1 stored-ACL add + 1 remove every ~1 ms ==
+strategy                                    req/s wrongAllow  wrongDeny exceptions     delegateACLs  notes
+pure-kafka (reference)                    511,949          0          0          0     200 (exp 200)  ; metadata updates done=4202, failed=0
+PR #83 as is (no lock)                     52,708          0          0          0     301 (exp 0)  add/remove exceptions=924416; metadata updates done=4494, failed=103
+(a) lock                                  103,823          0          0          0       0 (exp 0)  skipped duplicates=0; metadata updates done=3894, failed=0
+(b) private authorizer per request        102,612          0          0          0       0 (exp 0)  authorizers built=416164; metadata updates done=4012, failed=0
+(c) private authorizer, cached            798,541          0          0          0       0 (exp 0)  authorizers built=83631; metadata updates done=3868, failed=0
+
+== stored KRaft ACLs: 101, no metadata changes ==
+strategy                                    req/s wrongAllow  wrongDeny exceptions     delegateACLs  notes
+pure-kafka (reference)                    478,976          0          0          0     300 (exp 300)
+PR #83 as is (no lock)                     68,305          0          0          0     101 (exp 101)  add/remove exceptions=7035
+(a) lock                                   60,626          0          0          0     101 (exp 101)  skipped duplicates=6192
+(b) private authorizer per request         13,209          0          0          0     101 (exp 101)  authorizers built=53106
+(c) private authorizer, cached            571,130          0          0          0     101 (exp 101)  authorizers built=40
+
+== stored KRaft ACLs: 101, metadata churn: 1 stored-ACL add + 1 remove every ~1 ms ==
+strategy                                    req/s wrongAllow  wrongDeny exceptions     delegateACLs  notes
+pure-kafka (reference)                    453,960          0          0          0     300 (exp 300)  ; metadata updates done=4226, failed=0
+PR #83 as is (no lock)                     52,464          0         13          0     427 (exp 101)  add/remove exceptions=878138; metadata updates done=4378, failed=137
+(a) lock                                   65,612          0          0          0     101 (exp 101)  skipped duplicates=6445; metadata updates done=3058, failed=0
+(b) private authorizer per request         12,225          0          0          0     101 (exp 101)  authorizers built=49866; metadata updates done=3950, failed=0
+(c) private authorizer, cached             17,406          0          0          0     101 (exp 101)  authorizers built=49435; metadata updates done=3698, failed=0
+
+== stored KRaft ACLs: 1001, no metadata changes ==
+strategy                                    req/s wrongAllow  wrongDeny exceptions     delegateACLs  notes
+pure-kafka (reference)                    402,365          0          0          0    1200 (exp 1200)
+PR #83 as is (no lock)                     57,023          0          0          0    1001 (exp 1001)  add/remove exceptions=5742
+(a) lock                                   55,974          0          0          0    1001 (exp 1001)  skipped duplicates=5743
+(b) private authorizer per request            935          0          0          0    1001 (exp 1001)  authorizers built=3821
+(c) private authorizer, cached            438,918          0          0          0    1001 (exp 1001)  authorizers built=40
+
+== stored KRaft ACLs: 1001, metadata churn: 1 stored-ACL add + 1 remove every ~1 ms ==
+strategy                                    req/s wrongAllow  wrongDeny exceptions     delegateACLs  notes
+pure-kafka (reference)                    406,206          0          0          0    1200 (exp 1200)  ; metadata updates done=4072, failed=0
+PR #83 as is (no lock)                     48,892          0          6          0    1353 (exp 1001)  add/remove exceptions=805174; metadata updates done=4346, failed=144
+(a) lock                                   53,090          0          0          0    1001 (exp 1001)  skipped duplicates=5442; metadata updates done=3768, failed=0
+(b) private authorizer per request            926          0          0          0    1001 (exp 1001)  authorizers built=3750; metadata updates done=3380, failed=0
+(c) private authorizer, cached                942          0          0          0    1001 (exp 1001)  authorizers built=3828; metadata updates done=1596, failed=0
