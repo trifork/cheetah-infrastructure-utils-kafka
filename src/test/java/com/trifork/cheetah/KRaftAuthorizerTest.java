@@ -575,4 +575,78 @@ class KRaftAuthorizerTest {
         );
     }
 
+    /**
+     * Kafka calls authorizeByResourceType(WRITE, TOPIC) on InitProducerId when an idempotent producer
+     * lacks IDEMPOTENT_WRITE. The answer must come from the JWT roles, for any topic they name.
+     */
+    @ParameterizedTest
+    @MethodSource("provideAuthorizeByResourceTypeTestCases")
+    @DisplayName("authorizeByResourceType from JWT roles")
+    void testAuthorizeByResourceType(ObjectNode claims, AclOperation operation, ResourceType resourceType, AuthorizationResult expectedResult) {
+        OAuthKafkaPrincipal principal = getKafkaPrincipal("User:doesntmatter", claims);
+        AuthorizableRequestContext context = getAuthorizableRequestContext(principal);
+
+        assertEquals(expectedResult, authorizer.authorizeByResourceType(context, operation, resourceType));
+    }
+
+    static Stream<Arguments> provideAuthorizeByResourceTypeTestCases() {
+        ObjectNode writer = JSONUtil.newObjectNode();
+        writer.putArray("roles").add("Kafka_MyTopic_write");
+
+        ObjectNode all = JSONUtil.newObjectNode();
+        all.putArray("roles").add("Kafka_MyTopic_all");
+
+        ObjectNode prefixedWriter = JSONUtil.newObjectNode();
+        prefixedWriter.putArray("roles").add("Kafka_My*_write");
+
+        ObjectNode reader = JSONUtil.newObjectNode();
+        reader.putArray("roles").add("Kafka_MyTopic_read");
+
+        ObjectNode noRoles = JSONUtil.newObjectNode();
+        noRoles.putArray("roles");
+
+        ObjectNode missingClaim = JSONUtil.newObjectNode();
+
+        return Stream.of(
+                Arguments.of(writer, AclOperation.WRITE, ResourceType.TOPIC, AuthorizationResult.ALLOWED),
+                Arguments.of(all, AclOperation.WRITE, ResourceType.TOPIC, AuthorizationResult.ALLOWED),
+                Arguments.of(prefixedWriter, AclOperation.WRITE, ResourceType.TOPIC, AuthorizationResult.ALLOWED),
+                Arguments.of(reader, AclOperation.WRITE, ResourceType.TOPIC, AuthorizationResult.DENIED),
+                Arguments.of(reader, AclOperation.READ, ResourceType.TOPIC, AuthorizationResult.ALLOWED),
+                Arguments.of(writer, AclOperation.READ, ResourceType.TOPIC, AuthorizationResult.DENIED),
+                Arguments.of(reader, AclOperation.READ, ResourceType.GROUP, AuthorizationResult.ALLOWED),
+                Arguments.of(writer, AclOperation.WRITE, ResourceType.TRANSACTIONAL_ID, AuthorizationResult.DENIED),
+                Arguments.of(noRoles, AclOperation.WRITE, ResourceType.TOPIC, AuthorizationResult.DENIED),
+                Arguments.of(missingClaim, AclOperation.WRITE, ResourceType.TOPIC, AuthorizationResult.DENIED)
+        );
+    }
+
+    @Test
+    void testAuthorizeByResourceTypeSuperUser() {
+        setUpSuperUserConfigs();
+
+        assertEquals(AuthorizationResult.ALLOWED,
+                authorizer.authorizeByResourceType(getNonOAuthContext("superuser"), AclOperation.WRITE, ResourceType.TOPIC));
+    }
+
+    @Test
+    void testAuthorizeByResourceTypeNonOAuthPrincipalDenied() {
+        setUpSuperUserConfigs();
+
+        assertEquals(AuthorizationResult.DENIED,
+                authorizer.authorizeByResourceType(getNonOAuthContext("someone-else"), AclOperation.WRITE, ResourceType.TOPIC));
+    }
+
+    private AuthorizableRequestContext getNonOAuthContext(String userName) {
+        return new RequestContext(
+                new RequestHeader(ApiKeys.INIT_PRODUCER_ID, (short) 1, "", 1),
+                "",
+                null,
+                new KafkaPrincipal("User", userName),
+                new ListenerName(""),
+                SecurityProtocol.PLAINTEXT,
+                new ClientInformation("", ""),
+                false);
+    }
+
 }
