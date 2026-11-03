@@ -6,7 +6,10 @@ import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.resource.PatternType;
+import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourceType;
+import org.apache.kafka.common.utils.SecurityUtils;
 import org.apache.kafka.metadata.authorizer.AclMutator;
 import org.apache.kafka.metadata.authorizer.ClusterMetadataAuthorizer;
 import org.apache.kafka.metadata.authorizer.StandardAcl;
@@ -192,23 +195,34 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         }
     }
 
+    /**
+     * Allowed if the principal may perform the operation on at least one resource of the given type.
+     * Kafka asks this for (WRITE, TOPIC) on InitProducerId when IDEMPOTENT_WRITE is denied.
+     * Access comes from the JWT roles, not from ACLs, so this is answered from the roles
+     * (a role on any topic counts) rather than by the delegate.
+     */
     @Override
     public AuthorizationResult authorizeByResourceType(AuthorizableRequestContext requestContext, AclOperation op, ResourceType resourceType) {
-        if (delegate != null) {
-            return delegate.authorizeByResourceType(requestContext, op, resourceType);
-        } else {
-            throw new UnsupportedOperationException("ACL delegation not enabled");
+        SecurityUtils.authorizeByResourceTypeCheckArgs(op, resourceType);
+        List<Action> actions = List.of(new Action(op,
+                new ResourcePattern(resourceType, ResourcePattern.WILDCARD_RESOURCE, PatternType.LITERAL),
+                1, false, false));
+        if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
+            return handleSuperUsers(requestContext, actions).get(0);
         }
+        return authorizeFromJwt((OAuthKafkaPrincipal) requestContext.principal(), actions, true).get(0);
     }
 
     @Override
     public List<AuthorizationResult> authorize(AuthorizableRequestContext requestContext, List<Action> actions) {
-        List<AuthorizationResult> results = new ArrayList<>(actions.size());
         if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
             return handleSuperUsers(requestContext, actions);
         }
+        return authorizeFromJwt((OAuthKafkaPrincipal) requestContext.principal(), actions, false);
+    }
 
-        OAuthKafkaPrincipal principal = (OAuthKafkaPrincipal) requestContext.principal();
+    private List<AuthorizationResult> authorizeFromJwt(OAuthKafkaPrincipal principal, List<Action> actions, boolean anyTopic) {
+        List<AuthorizationResult> results = new ArrayList<>(actions.size());
 
         List<String> accesses;
         try {
@@ -227,6 +241,11 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
                 .collect(Collectors.toList());
 
         List<TopicAccess> topicAccesses = extractTopicAccesses(topicAccessesRaw, prefix);
+        if (anyTopic) {
+            topicAccesses = topicAccesses.stream()
+                    .map(t -> new TopicAccess("*", t.operation.name()))
+                    .collect(Collectors.toList());
+        }
         List<ClusterAccess> clusterAccesses = extractClusterAccesses(clusterAccessesRaw, prefix);
 
         for (Action action : actions) {
