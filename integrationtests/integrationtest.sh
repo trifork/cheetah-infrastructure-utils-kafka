@@ -33,6 +33,31 @@ while [ "$COUNTER" -lt "$COUNTER_STOP" ]; do
    let ++COUNTER # ++ must come first, otherwise let exits with code 1
 done
 
+# Idempotent producers (the default) send InitProducerId; without IDEMPOTENT_WRITE Kafka falls back to
+# authorizeByResourceType(WRITE, TOPIC). The console producer exits 0 even on failure, so check its output.
+produce_as() {
+   echo "$1" | OAUTH_CLIENT_ID="$1" OAUTH_CLIENT_SECRET="$1-secret" bin/kafka-console-producer.sh \
+      --command-property sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler \
+      --command-property sasl.mechanism="OAUTHBEARER" \
+      --command-property security.protocol=SASL_PLAINTEXT \
+      --command-property sasl.jaas.config="org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;" \
+      --topic "$TOPIC_NAME" \
+      --bootstrap-server "$KAFKA__URL" \
+      --max-block-ms 10000 2>&1 || true
+}
+
+echo "Producing as writer (Kafka_*_write)"
+if produce_as default-write | grep -q "Exception"; then
+   echo "Writer was not allowed to produce"
+   exit 1
+fi
+
+echo "Producing as reader (Kafka_*_read), expecting a clean authorization error"
+if ! produce_as default-read | grep -q "ClusterAuthorizationException"; then
+   echo "Reader did not get ClusterAuthorizationException"
+   exit 1
+fi
+
 echo "Consuming some messages"
 output=$(timeout "$TIMEOUT" bin/kafka-console-consumer.sh \
    --consumer-property sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler \
