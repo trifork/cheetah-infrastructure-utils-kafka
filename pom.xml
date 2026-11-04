@@ -7,7 +7,7 @@
     <groupId>com.trifork.cheetah</groupId>
     <artifactId>cheetah-kafka-authorizer</artifactId>
 
-    <version>strimzi-1.0.1-kafka-4.2.0-trifork-2.1.0</version>
+    <version>strimzi-1.0.1-kafka-4.2.0-trifork-2.1.1</version>
 
     <packaging>jar</packaging>
 
