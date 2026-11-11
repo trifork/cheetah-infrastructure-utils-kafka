@@ -24,7 +24,6 @@ import org.apache.kafka.server.authorizer.AuthorizationResult;
 import org.apache.kafka.server.authorizer.AuthorizerServerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import java.io.IOException;
 import java.util.List;
@@ -284,9 +283,17 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         boolean allowed = result == AuthorizationResult.ALLOWED;
         boolean explicit = allowed ? action.logIfAllowed() : action.logIfDenied();
         // Kafka logs an explicitly requested access check at DEBUG (allowed) or INFO (denied), anything else at TRACE.
-        Level level = !explicit ? Level.TRACE : allowed ? Level.DEBUG : Level.INFO;
-        if (AUDIT_LOG.isEnabledForLevel(level)) {
-            AUDIT_LOG.atLevel(level).log(buildAuditMessage(requestContext, action, allowed, rule));
+        // Kafka runs slf4j 1.7, so this must not use the 2.x API (isEnabledForLevel, atLevel): that fails at runtime.
+        if (!explicit) {
+            if (AUDIT_LOG.isTraceEnabled()) {
+                AUDIT_LOG.trace(buildAuditMessage(requestContext, action, allowed, rule));
+            }
+        } else if (allowed) {
+            if (AUDIT_LOG.isDebugEnabled()) {
+                AUDIT_LOG.debug(buildAuditMessage(requestContext, action, true, rule));
+            }
+        } else if (AUDIT_LOG.isInfoEnabled()) {
+            AUDIT_LOG.info(buildAuditMessage(requestContext, action, false, rule));
         }
     }
 
