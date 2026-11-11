@@ -133,9 +133,21 @@ Then
 `docker build . -t my-kafka`
 
 ## Logging
-The following types of info are logged on different log levels:
-### DEBUG
-* SuperUsers(e.g. kafka-entity-topic-operator, kafka-exporter) accesses.
+
+### Audit log
+Every authorization decision is written to Kafka's audit logger `kafka.authorizer.logger`, in the same format as Kafka's own `StandardAuthorizer`:
+
+```
+Principal = User:alice is Allowed operation = WRITE from host = 10.1.2.3 on resource = Topic:LITERAL:orders for request = Produce with resourceRefCount = 1 based on rule JwtClaims
+```
+
+The appender, the `kafka-authorizer.log` file and the level are configured through Kafka's log4j settings (`logger.authorizer.level` in Strimzi). Like in Kafka, an allowed request is logged at DEBUG, a denied one at INFO, and checks Kafka did not ask for explicitly at TRACE.
+
+The text after `based on rule` is ours: `SuperUser`, `JwtClaims`, `DefaultDeny` or `NoClaim` (the JWT does not have the configured claim).
+`AuditLogFormatTest` compares our lines with the ones a real `StandardAuthorizer` writes and fails with instructions if a Kafka upgrade changes the format.
+
+### Other logs
+The following types of info are logged by the plugin itself on different log levels:
 ### INFO
 * JWT claim has entries that do not follow the correct pattern for topic access `<prefix>_<topic-name>_<operation>`.
 ### WARN
