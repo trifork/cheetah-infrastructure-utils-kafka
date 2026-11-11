@@ -24,13 +24,13 @@ Per request: the client sends a JWT and Strimzi OAuth validates it (authenticati
 
 All options use the same pure core: **claim → ACL rows** (e.g. `Kafka_orders_read` → TOPIC READ + GROUP READ). They differ in when and where it runs.
 
-| | A: per-user sync | B: per-role rows + wrapper | C: generate in memory (PR 223) |
-|---|---|---|---|
-| How | Job syncs Keycloak to `User:<sub>` rows | Rows per role (`Role:x`), plugin asks Kafka once per role claim | Plugin builds ACLs from the token at request time |
-| Provisioning | sync service | `Role:*` rows | none |
-| Revocation | sync lag | token expiry | token expiry |
-| DENY / `super.users` | yes | DENY can't veto across roles | yes |
-| Custom code | none | small | medium |
+|                      | A: per-user sync                        | B: per-role rows + wrapper                                      | C: generate in memory (PR 223)                    |
+|----------------------|-----------------------------------------|-----------------------------------------------------------------|---------------------------------------------------|
+| How                  | Job syncs Keycloak to `User:<sub>` rows | Rows per role (`Role:x`), plugin asks Kafka once per role claim | Plugin builds ACLs from the token at request time |
+| Provisioning         | sync service                            | `Role:*` rows                                                   | none                                              |
+| Revocation           | sync lag                                | token expiry                                                    | token expiry                                      |
+| DENY / `super.users` | yes                                     | DENY can't veto across roles                                    | yes                                               |
+| Custom code          | none                                    | small                                                           | medium                                            |
 
 ## 4. PR 223 (the implemented approach)
 
