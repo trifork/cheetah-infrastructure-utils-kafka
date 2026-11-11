@@ -6,9 +6,11 @@ import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.protocol.ApiKeys;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourceType;
+import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.utils.SecurityUtils;
 import org.apache.kafka.metadata.authorizer.AclMutator;
 import org.apache.kafka.metadata.authorizer.ClusterMetadataAuthorizer;
@@ -22,6 +24,7 @@ import org.apache.kafka.server.authorizer.AuthorizationResult;
 import org.apache.kafka.server.authorizer.AuthorizerServerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import java.io.IOException;
 import java.util.List;
@@ -42,6 +45,12 @@ import static org.apache.kafka.common.acl.AclOperation.*;
 
 public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     static final Logger LOG = LoggerFactory.getLogger(CheetahKRaftAuthorizer.class.getName());
+    /** Kafka's audit logger, the same name StandardAuthorizer uses. Configured by Kafka's log4j settings. */
+    static final Logger AUDIT_LOG = LoggerFactory.getLogger("kafka.authorizer.logger");
+    static final String RULE_SUPER_USER = "SuperUser";
+    static final String RULE_JWT_CLAIMS = "JwtClaims";
+    static final String RULE_DEFAULT_DENY = "DefaultDeny";
+    static final String RULE_NO_CLAIM = "NoClaim";
     private String topicClaimName;
     private String prefix;
     private boolean isClaimList;
@@ -210,7 +219,7 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
             return handleSuperUsers(requestContext, actions).get(0);
         }
-        return authorizeFromJwt((OAuthKafkaPrincipal) requestContext.principal(), actions, true).get(0);
+        return authorizeFromJwt(requestContext, (OAuthKafkaPrincipal) requestContext.principal(), actions, true).get(0);
     }
 
     @Override
@@ -218,10 +227,11 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
         if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
             return handleSuperUsers(requestContext, actions);
         }
-        return authorizeFromJwt((OAuthKafkaPrincipal) requestContext.principal(), actions, false);
+        return authorizeFromJwt(requestContext, (OAuthKafkaPrincipal) requestContext.principal(), actions, false);
     }
 
-    private List<AuthorizationResult> authorizeFromJwt(OAuthKafkaPrincipal principal, List<Action> actions, boolean anyTopic) {
+    private List<AuthorizationResult> authorizeFromJwt(AuthorizableRequestContext requestContext, OAuthKafkaPrincipal principal,
+                                                       List<Action> actions, boolean anyTopic) {
         List<AuthorizationResult> results = new ArrayList<>(actions.size());
 
         List<String> accesses;
@@ -229,6 +239,9 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
             accesses = extractAccessClaim(principal);
         } catch (Exception e) {
             LOG.warn(String.format("JWT does not have \"%s\" claim", topicClaimName));
+            for (Action action : actions) {
+                audit(requestContext, action, AuthorizationResult.DENIED, RULE_NO_CLAIM);
+            }
             return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
         }
 
@@ -250,18 +263,46 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
 
         for (Action action : actions) {
             if (checkTopicJwtClaims(topicAccesses, action) || checkClusterJwtClaims(clusterAccesses, action)) {
+                audit(requestContext, action, AuthorizationResult.ALLOWED, RULE_JWT_CLAIMS);
                 results.add(AuthorizationResult.ALLOWED);
                 continue;
             }
 
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Action was Denied");
-                LOG.debug(action.toString());
-            }
+            audit(requestContext, action, AuthorizationResult.DENIED, RULE_DEFAULT_DENY);
             results.add(AuthorizationResult.DENIED);
         }
 
         return results;
+    }
+
+    /**
+     * Writes one audit line per decision to Kafka's own audit logger, so it lands in the same appender, file and
+     * level configuration as the lines StandardAuthorizer writes. The format and level rules mirror the private
+     * StandardAuthorizerData.logAuditMessage; AuditLogFormatTest fails if they drift apart.
+     */
+    static void audit(AuthorizableRequestContext requestContext, Action action, AuthorizationResult result, String rule) {
+        boolean allowed = result == AuthorizationResult.ALLOWED;
+        boolean explicit = allowed ? action.logIfAllowed() : action.logIfDenied();
+        // Kafka logs an explicitly requested access check at DEBUG (allowed) or INFO (denied), anything else at TRACE.
+        Level level = !explicit ? Level.TRACE : allowed ? Level.DEBUG : Level.INFO;
+        if (AUDIT_LOG.isEnabledForLevel(level)) {
+            AUDIT_LOG.atLevel(level).log(buildAuditMessage(requestContext, action, allowed, rule));
+        }
+    }
+
+    static String buildAuditMessage(AuthorizableRequestContext requestContext, Action action, boolean allowed, String rule) {
+        KafkaPrincipal principal = requestContext.principal();
+        ResourcePattern resource = action.resourcePattern();
+        // Type and name only: OAuthKafkaPrincipal.toString() would add groups and part of the token.
+        return "Principal = " + principal.getPrincipalType() + ":" + principal.getName()
+                + " is " + (allowed ? "Allowed" : "Denied")
+                + " operation = " + action.operation()
+                + " from host = " + requestContext.clientAddress().getHostAddress()
+                + " on resource = " + SecurityUtils.resourceTypeName(resource.resourceType())
+                + ":" + resource.patternType() + ":" + resource.name()
+                + " for request = " + ApiKeys.forId(requestContext.requestType()).name
+                + " with resourceRefCount = " + action.resourceReferenceCount()
+                + " based on rule " + rule;
     }
 
     @Override
@@ -279,13 +320,12 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
     private List<AuthorizationResult> handleSuperUsers(AuthorizableRequestContext requestContext,
                                                        List<Action> actions) {
         UserSpec user = new UserSpec(requestContext.principal().getPrincipalType(), requestContext.principal().getName());
-        if (superUsers.contains(user)) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("Granting access to superuser %s", user.getName()));
-            }
-            return Collections.nCopies(actions.size(), AuthorizationResult.ALLOWED);
+        boolean superUser = superUsers.contains(user);
+        AuthorizationResult result = superUser ? AuthorizationResult.ALLOWED : AuthorizationResult.DENIED;
+        for (Action action : actions) {
+            audit(requestContext, action, result, superUser ? RULE_SUPER_USER : RULE_DEFAULT_DENY);
         }
-        return Collections.nCopies(actions.size(), AuthorizationResult.DENIED);
+        return Collections.nCopies(actions.size(), result);
     }
 
     private List<String> extractAccessClaim(OAuthKafkaPrincipal principal) {
