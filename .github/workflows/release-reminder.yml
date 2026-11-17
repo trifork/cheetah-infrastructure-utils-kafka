@@ -1,0 +1,17 @@
+name: Release Reminder
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  reminder:
+    uses: trifork/cheetah-infrastructure-utils-workflows/.github/workflows/create-release-reminder.yml@main
+    with:
+      project-name: cheetah-infrastructure-utils-kafka
+      tag-prefix: strimzi-
