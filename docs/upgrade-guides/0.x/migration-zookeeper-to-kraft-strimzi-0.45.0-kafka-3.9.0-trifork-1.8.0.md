@@ -6,8 +6,8 @@ The goal of this guide is to migrate your Kafka cluster from Zookeeper to KRaft.
 
 ## Guide References
 
-- https://strimzi.io/docs/operators/0.45.0/deploying#proc-migrating-clusters-node-pools-str
-- https://strimzi.io/blog/2024/03/22/strimzi-kraft-migration/
+- <https://strimzi.io/docs/operators/0.45.0/deploying#proc-migrating-clusters-node-pools-str>
+- <https://strimzi.io/blog/2024/03/22/strimzi-kraft-migration/>
 
 ## Prerequisites
 

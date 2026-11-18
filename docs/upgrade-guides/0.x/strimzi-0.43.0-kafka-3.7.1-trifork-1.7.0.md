@@ -13,7 +13,7 @@ Jira ticket: [KAMSTRUPKUB-2381](https://jira.netic.dk/browse/KAMSTRUPKUB-2381)
 
 ## Notes for upgrading
 
-- https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.43.0
+- <https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.43.0>
   Kafka now supports additional volumes!
 - We typically observed ~1-2 minutes downtime on the Flink jobs when they lost connection to the Kafka broker due to the Kafka upgrade
 - Other applications that are connected to a Kafka broker may crash if they do not handle the missing connection gracefully

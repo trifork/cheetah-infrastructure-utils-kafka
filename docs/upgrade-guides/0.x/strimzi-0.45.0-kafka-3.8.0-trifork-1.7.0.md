@@ -10,7 +10,7 @@ Jira ticket: [KAMSTRUPKUB-3217](https://jira.netic.dk/browse/KAMSTRUPKUB-3217)
 
 ## Notes for upgrading
 
-- https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.45.0
+- <https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.45.0>
 - We typically observed ~1-2 minutes downtime on the Flink jobs when they lost connection to the Kafka broker due to the Kafka upgrade
 - Other applications that are connected to a Kafka broker may crash if they do not handle the missing connection gracefully
   - Using the Sarama package in Go, we observed an error saying Kafka is in the middle of a leadership election

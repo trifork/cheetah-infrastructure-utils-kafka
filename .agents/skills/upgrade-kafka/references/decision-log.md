@@ -31,9 +31,9 @@ The log records every decision, change, test and source of one upgrade, so the g
 
 ## Sources
 
-| ID | Source (URL or path) | Section | Date read | Used for | Readable? |
-|----|----------------------|---------|-----------|----------|-----------|
-| S001 | https://... | <section/anchor> | 2026-11-18 | <finding or decision it supports> | yes |
+| ID   | Source (URL or path) | Section          | Date read  | Used for                          | Readable? |
+|------|----------------------|------------------|------------|-----------------------------------|-----------|
+| S001 | https://...          | <section/anchor> | 2026-11-18 | <finding or decision it supports> | yes       |
 
 ## Entries
 

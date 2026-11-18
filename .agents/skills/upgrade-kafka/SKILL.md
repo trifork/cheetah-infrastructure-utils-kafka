@@ -31,18 +31,18 @@ This skill is written for any coding agent. "Run a command" means use your shell
 
 ## Workflow overview
 
-| Phase | Name | Ends when |
-|---|---|---|
-| 0 | Preflight and scope | Starting state verified, hop type and versions confirmed |
-| 1 | Branch | User has created the upgrade branch from main in this repo |
-| 2 | Research and changes | Prerequisites checked, changes made on the branch, integration test run |
-| 3 | Snapshot | User has triggered the snapshot and given you the tag |
-| 4 | Test the snapshot | Passes in dev-infrastructure compose, then on the dev cluster |
-| 5 | Merge readiness | Branch is up to date with main and the user has merged it |
-| 6 | Release branch | User has created the release branch from main via the workflow |
-| 7 | Release candidate | RC built by the user and passes the same tests |
-| 8 | Guide | Summary approved by the user, guide generated, README row added |
-| 9 | Release and post-release | User created the release, related repos use it, user validated |
+| Phase | Name                     | Ends when                                                               |
+|-------|--------------------------|-------------------------------------------------------------------------|
+| 0     | Preflight and scope      | Starting state verified, hop type and versions confirmed                |
+| 1     | Branch                   | User has created the upgrade branch from main in this repo              |
+| 2     | Research and changes     | Prerequisites checked, changes made on the branch, integration test run |
+| 3     | Snapshot                 | User has triggered the snapshot and given you the tag                   |
+| 4     | Test the snapshot        | Passes in dev-infrastructure compose, then on the dev cluster           |
+| 5     | Merge readiness          | Branch is up to date with main and the user has merged it               |
+| 6     | Release branch           | User has created the release branch from main via the workflow          |
+| 7     | Release candidate        | RC built by the user and passes the same tests                          |
+| 8     | Guide                    | Summary approved by the user, guide generated, README row added         |
+| 9     | Release and post-release | User created the release, related repos use it, user validated          |
 
 Start at phase 0 (or at the phase recorded in an existing log). Follow [references/phases.md](references/phases.md) for each phase.
 
