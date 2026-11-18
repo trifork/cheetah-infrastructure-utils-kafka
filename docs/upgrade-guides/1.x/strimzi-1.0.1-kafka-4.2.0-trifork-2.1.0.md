@@ -1,6 +1,6 @@
 # Upgrade from strimzi-1.0.1-kafka-4.1.0-trifork-2.0.0 to strimzi-1.0.1-kafka-4.2.0-trifork-2.1.0
 
-> **Superseded - do not use 2.1.0.** Use [strimzi-1.0.1-kafka-4.2.0-trifork-2.1.1](../strimzi-1.0.1-kafka-4.2.0-trifork-2.1.1.md) instead, which fixes an authorizer `NullPointerException` for idempotent producers without a write role. This guide is kept for archive purposes only.
+> **Superseded - do not use 2.1.0.** Use [strimzi-1.0.1-kafka-4.2.0-trifork-2.1.1](strimzi-1.0.1-kafka-4.2.0-trifork-2.1.1.md) instead, which fixes an authorizer `NullPointerException` for idempotent producers without a write role. This guide is kept for archive purposes only.
 
 Only the Kafka version moves, 4.1.0 → 4.2.0. Strimzi 1.0.1 already supports Kafka 4.2.0 (see <https://strimzi.io/downloads/> "Supported versions"), so this is a straight rolling upgrade of the brokers.
 
