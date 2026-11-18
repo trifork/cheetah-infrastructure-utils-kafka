@@ -24,6 +24,11 @@ Content rules:
 <!-- One short paragraph: what moves in this hop (Strimzi / Kafka / Trifork image) and whether this is a straight rolling upgrade or involves CRD / operator changes. -->
 <what-changes-in-this-hop>
 
+<!-- (optional) Reason for upgrade, when there is a specific driver (for example a critical CVE). -->
+## Reason for upgrade
+
+<reason, with a link to the source>
+
 <!-- (optional) Why this exact version, e.g. when a patch release replaced an earlier one. -->
 **Why <to-version> and not <excluded-version>:** <reason visible to users>.
 
