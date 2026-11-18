@@ -4,12 +4,12 @@
 
 Decide the hop type in phase 0, explain it, and let the user confirm.
 
-| Hop type | Example | What changes |
-|---|---|---|
-| `kafka-only` | Kafka 4.1 -> 4.2 on Strimzi 1.0.1 | Image and Kafka CR `version`; metadataVersion pin and finalise; no operator or CRD change |
-| `strimzi-minor` | Strimzi 0.48 -> 0.51 | Operator + CRDs + image bump; no CRD API migration |
-| `strimzi-major` | Strimzi 0.51 -> 1.0.1 | CRD API migration (storage versions, CR conversion), Flux suspend, crd-upgrade Job, managedFields, operator + image bump |
-| `image-only` | oauth libs, junit, base image patch | New trifork version without Strimzi/Kafka change; usually Renovate-driven |
+| Hop type        | Example                             | What changes                                                                                                             |
+|-----------------|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `kafka-only`    | Kafka 4.1 -> 4.2 on Strimzi 1.0.1   | Image and Kafka CR `version`; metadataVersion pin and finalise; no operator or CRD change                                |
+| `strimzi-minor` | Strimzi 0.48 -> 0.51                | Operator + CRDs + image bump; no CRD API migration                                                                       |
+| `strimzi-major` | Strimzi 0.51 -> 1.0.1               | CRD API migration (storage versions, CR conversion), Flux suspend, crd-upgrade Job, managedFields, operator + image bump |
+| `image-only`    | oauth libs, junit, base image patch | New trifork version without Strimzi/Kafka change; usually Renovate-driven                                                |
 
 If the target is not supported by the operator version in use, or a hop skips a required intermediate version, say so and propose splitting it into several hops (one guide per hop). Strimzi has required intermediate stops before (0.51 before 1.0.x).
 
@@ -28,17 +28,17 @@ Read `docs/upgrade-guides/1.x/strimzi-1.0.1-kafka-4.1.0-trifork-2.0.0.md` and it
 
 Fetch these every time (version-pinned URLs where possible), read the sections for the from->to range, and log each in the decision log with section and date. Notes from earlier research; verify that the URLs still work.
 
-| Source | URL | Use |
-|---|---|---|
-| Strimzi supported versions matrix | https://strimzi.io/downloads/ | Which Kafka versions and Kubernetes versions each operator supports. Columns: Operators, Strimzi HTTP Bridge, Strimzi OAuth, Kafka versions, Tested Kubernetes versions |
-| Strimzi upgrade docs (version pinned) | `https://strimzi.io/docs/operators/<operator-version>/deploying.html#assembly-upgrade-str` | The upgrade procedure, sequence (`#con-upgrade-sequence-str`), Kafka upgrade (`#proc-upgrade-kafka-kraft-str`), upgrade paths (`#con-upgrade-paths-str`), downgrade. The page is very large; fetch the specific section, not the whole page |
-| Strimzi changelog | https://github.com/strimzi/strimzi-kafka-operator/blob/main/CHANGELOG.md | Most complete list of breaking changes. Per release, read the "Major changes, deprecations, and removals" subheading. Read every release from the target down to (excluding) the source. Search for "removed", "deprecated", "must", "before upgrading" |
-| Strimzi release notes | https://github.com/strimzi/strimzi-kafka-operator/releases | Per-release notes, Kubernetes support changes, CRD warnings. The tag list may be JavaScript-rendered; open `.../releases/tag/<version>` directly |
-| Kafka upgrade notes | `https://kafka.apache.org/<major><minor>/getting-started/upgrade/` (e.g. `/44/`) | Per-version "Notable changes", rolling upgrade, metadata version finalise, downgrade limits. Per-version anchors like `#upgrading-to-432` |
-| Kafka downloads | https://kafka.apache.org/community/downloads/ | Supported and archived Kafka releases |
-| Kafka release notes and KIPs | linked from the downloads page, and `https://cwiki.apache.org/confluence/display/KAFKA/` for KIPs | Details of breaking changes mentioned in the upgrade notes (for example KIP-1161 list-config validation, KIP-1157 principal builders, KIP-1147 CLI deprecations) |
-| Strimzi OAuth releases | https://github.com/strimzi/strimzi-kafka-oauth/releases | Our authorizer depends on the strimzi-kafka-oauth libraries |
-| Previous guides | `docs/upgrade-guides/` | Prerequisites, patterns and wording; see what past hops needed |
+| Source                                | URL                                                                                               | Use                                                                                                                                                                                                                                                     |
+|---------------------------------------|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Strimzi supported versions matrix     | <https://strimzi.io/downloads/>                                                                   | Which Kafka versions and Kubernetes versions each operator supports. Columns: Operators, Strimzi HTTP Bridge, Strimzi OAuth, Kafka versions, Tested Kubernetes versions                                                                                 |
+| Strimzi upgrade docs (version pinned) | `https://strimzi.io/docs/operators/<operator-version>/deploying.html#assembly-upgrade-str`        | The upgrade procedure, sequence (`#con-upgrade-sequence-str`), Kafka upgrade (`#proc-upgrade-kafka-kraft-str`), upgrade paths (`#con-upgrade-paths-str`), downgrade. The page is very large; fetch the specific section, not the whole page             |
+| Strimzi changelog                     | <https://github.com/strimzi/strimzi-kafka-operator/blob/main/CHANGELOG.md>                        | Most complete list of breaking changes. Per release, read the "Major changes, deprecations, and removals" subheading. Read every release from the target down to (excluding) the source. Search for "removed", "deprecated", "must", "before upgrading" |
+| Strimzi release notes                 | <https://github.com/strimzi/strimzi-kafka-operator/releases>                                      | Per-release notes, Kubernetes support changes, CRD warnings. The tag list may be JavaScript-rendered; open `.../releases/tag/<version>` directly                                                                                                        |
+| Kafka upgrade notes                   | `https://kafka.apache.org/<major><minor>/getting-started/upgrade/` (e.g. `/44/`)                  | Per-version "Notable changes", rolling upgrade, metadata version finalise, downgrade limits. Per-version anchors like `#upgrading-to-432`                                                                                                               |
+| Kafka downloads                       | <https://kafka.apache.org/community/downloads/>                                                   | Supported and archived Kafka releases                                                                                                                                                                                                                   |
+| Kafka release notes and KIPs          | linked from the downloads page, and `https://cwiki.apache.org/confluence/display/KAFKA/` for KIPs | Details of breaking changes mentioned in the upgrade notes (for example KIP-1161 list-config validation, KIP-1157 principal builders, KIP-1147 CLI deprecations)                                                                                        |
+| Strimzi OAuth releases                | <https://github.com/strimzi/strimzi-kafka-oauth/releases>                                         | Our authorizer depends on the strimzi-kafka-oauth libraries                                                                                                                                                                                             |
+| Previous guides                       | `docs/upgrade-guides/`                                                                            | Prerequisites, patterns and wording; see what past hops needed                                                                                                                                                                                          |
 
 Known fetching caveats:
 - `kafka.apache.org/#upgrade`, `/<ver>/documentation/#upgrade` and `kafka.apache.org/downloads` return redirect shells; use the URLs in the table.

@@ -13,7 +13,7 @@ Jira ticket: [KAMSTRUPKUB-2380](https://jira.netic.dk/browse/KAMSTRUPKUB-2380)
 
 ## Notes for upgrading
 
-- https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.42.0
+- <https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.42.0>
   The UseKRaft feature gate moves to GA stage and is permanently enabled without the possibility to disable it.
   To use KRaft (ZooKeeper-less Apache Kafka), you still need to use the `strimzi.io/kraft`: enabled annotation on the Kafka custom resources or migrate from an existing ZooKeeper-based cluster.
 - We typically observed ~1-2 minutes downtime on the Flink jobs when they lost connection to the Kafka broker due to the Kafka upgrade
