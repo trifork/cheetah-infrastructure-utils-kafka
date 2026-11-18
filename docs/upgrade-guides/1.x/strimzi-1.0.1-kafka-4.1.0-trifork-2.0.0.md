@@ -79,7 +79,7 @@ Reference: <https://strimzi.io/docs/operators/1.0.1/deploying.html#assembly-upgr
    - **NetworkPolicy egress to the Kubernetes API on 443/TCP** - the kafka namespace has default-deny egress with per-workload exceptions. A generic Job pod won't match any existing allowance and will time out on its first API call with `HttpConnectTimeoutException`.
    - **A distinct pod label** so the NetPol can select the Job's pod specifically.
 
-   Full manifest - save as `crd-upgrade-job.yaml`, substituting your API server IPs for `<API_CLUSTER_IP>` and `<API_ENDPOINT_IP>`. The job file is provided separately in the [Reference Sheet](reference/reference-sheet-strimzi-1.0.1-kafka-4.1.0-trifork-2.0.0.md).
+   Full manifest - save as `crd-upgrade-job.yaml`, substituting your API server IPs for `<API_CLUSTER_IP>` and `<API_ENDPOINT_IP>`. The job file is provided separately in the [Reference Sheet](reference-sheet-strimzi-1.0.1-kafka-4.1.0-trifork-2.0.0.md).
 
    Apply through pipeline, wait, and inspect logs.
 
@@ -126,7 +126,7 @@ Reference: <https://strimzi.io/docs/operators/1.0.1/deploying.html#assembly-upgr
 
     Fix: patch each CR's `metadata.managedFields` to the special "clear" value `[{}]`. Kubernetes recognises this as "wipe all entries"; Flux and the Strimzi operators re-establish fresh entries at v1 on their next reconcile. The resource's spec and status are untouched. See <https://kubernetes.io/docs/reference/using-api/server-side-apply/> under "clearing managedFields".
 
-11. **Final verification.** (See the [Reference Sheet](reference/reference-sheet-strimzi-1.0.1-kafka-4.1.0-trifork-2.0.0.md).) Check that:
+11. **Final verification.** (See the [Reference Sheet](reference-sheet-strimzi-1.0.1-kafka-4.1.0-trifork-2.0.0.md).) Check that:
     - every CRD is `served=[v1] storage=v1 stored=["v1"]`
     - Kafka CR `Ready=True op=1.0.1 gen=X/X`
     - no lines from the managedFields sweep, and all Flux Kustomizations `READY=True`.

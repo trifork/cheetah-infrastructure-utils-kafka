@@ -1,6 +1,6 @@
 # Reference Sheet
 
-Supporting material for the [strimzi-1.0.1-kafka-4.1.0-trifork-2.0.0](../strimzi-1.0.1-kafka-4.1.0-trifork-2.0.0.md) upgrade guide.
+Supporting material for the [strimzi-1.0.1-kafka-4.1.0-trifork-2.0.0](strimzi-1.0.1-kafka-4.1.0-trifork-2.0.0.md) upgrade guide.
 
 ## Reference for crd-upgrade-job for step 8
 

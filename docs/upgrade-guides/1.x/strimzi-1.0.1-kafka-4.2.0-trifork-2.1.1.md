@@ -2,7 +2,7 @@
 
 Only the Kafka version moves, 4.1.0 → 4.2.0. Strimzi 1.0.1 already supports Kafka 4.2.0 (see <https://strimzi.io/downloads/> "Supported versions"), so this is a straight rolling upgrade of the brokers.
 
-**Why 2.1.1 and not 2.1.0:** 2.1.1 is a patch release of 2.1.0 with one bug fix. After Kafka 4.1, the authorizer threw a `NullPointerException` when an idempotent producer without a write role started, so that producer got `Unexpected error in InitProducerIdResponse` instead of a clean authorization error. Access was never granted wrongly. Use 2.1.1; do not use 2.1.0 (see [2.1.0 guide](superseded/strimzi-1.0.1-kafka-4.2.0-trifork-2.1.0.md), kept for archive purposes).
+**Why 2.1.1 and not 2.1.0:** 2.1.1 is a patch release of 2.1.0 with one bug fix. After Kafka 4.1, the authorizer threw a `NullPointerException` when an idempotent producer without a write role started, so that producer got `Unexpected error in InitProducerIdResponse` instead of a clean authorization error. Access was never granted wrongly. Use 2.1.1; do not use 2.1.0 (see [2.1.0 guide](strimzi-1.0.1-kafka-4.2.0-trifork-2.1.0.md), kept for archive purposes).
 
 Starting state should be:
 
