@@ -4,7 +4,7 @@ The log records every decision, change, test and source of one upgrade, so the g
 
 ## Location
 
-`docs/upgrade-guides/.upgrade-log/<target-tag>.md` on the upgrade branch (create the folder if needed). Do not commit it; the user decides what to commit. At the end the user decides whether it is kept or deleted.
+`docs/upgrade-guides/.upgrade-log/<target-tag>.md` in the working tree (create the folder if needed). The folder is git-ignored (`.gitignore`), so the log is local only and is never committed or pushed; it does not appear in `git status`. Because it is not in git, it only survives in the user's checkout: do not rely on it being on another machine or branch. At the end the user decides whether it is kept or deleted.
 
 ## Rules
 

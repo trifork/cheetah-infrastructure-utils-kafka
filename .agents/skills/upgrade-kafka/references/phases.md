@@ -17,6 +17,23 @@ Version tag format: `strimzi-<strimzi>-kafka-<kafka>-trifork-<trifork>`.
    - If ambiguous, ask.
 6. Create the decision log (see `decision-log.md`) and record scope, hop type, from/to tags and the sources used.
 
+### Integration test prerequisites (local infrastructure)
+
+`integrationtests/docker-compose.yml` starts its own Kafka (built from this repo's Dockerfile) and a test client, but it does not start an identity provider. It depends on the local infrastructure in `cheetah-development-infrastructure`, and only on part of it. Verified by reading both repos (2026-11-18):
+
+- **Keycloak must be running, with the `local-development` realm imported.** `integrationtests/config/kafka/server.properties` and `kafkasetup.config` use `http://keycloak:1852/realms/local-development/...` (JWKS and token endpoints), and the broker fails at startup with `UnknownHostException: keycloak` / `Failed to fetch public keys` without it. The realm clients used by the test (`default-access`, `default-read`, `default-write`) are created by the `keycloak-setup` service, so both services are needed.
+- **The Docker network `cheetah-infrastructure` must exist.** The test compose declares it `external: true`. Any `docker compose up` in the dev-infrastructure repo creates it. Do not create it by hand: compose then warns about a network it did not create.
+- **Dev-infrastructure Kafka must NOT be running.** The test Kafka uses hostname `kafka` on the same network and publishes ports 9092 and 9093, exactly like `docker-compose/kafka.yaml`. Both at once collide on hostname and ports. The dev-infrastructure `.env` enables the `kafka` profile by default, so a plain `docker compose up` there starts the conflicting Kafka.
+- OpenSearch, Postgres, Redpanda, schema registry and observability are not needed.
+
+Tell the user to run this in `cheetah-development-infrastructure` and wait until `keycloak-setup` has finished (it exits when the import is done):
+
+```bash
+docker compose up -d keycloak keycloak-setup
+```
+
+Naming the services selects them regardless of the profile settings in `.env`. Read-only ways to verify before running the test: `docker ps --filter name=keycloak`, `docker network ls --filter name=cheetah-infrastructure`, and `docker ps --filter name=kafka` (must show no dev-infrastructure Kafka). If the dev-infrastructure Kafka is running, ask the user to stop it (`docker compose stop kafka kafka-setup redpanda schema-registry` there) before the integration test. Stop Keycloak again afterwards only if the user wants to.
+
 ### Version pins to scan
 
 This repository:
@@ -50,6 +67,7 @@ Rule: create a branch from `main` on this repository with an appropriate name fo
 4. **Make the changes in this repository on the branch:** Dockerfile, `pom.xml`, Java dependency versions, authorizer code, tests, integration test config. Do not commit. Log each as a `change` entry with files and reason.
 5. For changes needed in other repos (dev-infrastructure, gitops), show the intended diff and ask for explicit permission before editing. Log them as `change` entries with the repo.
 6. **Run tests on the branch** where possible: `mvn -B test` (or `mvn -B package`) and the integration test (`cd integrationtests && docker compose up --build --abort-on-container-exit kafka-testclient`). Check that Docker is running first; if not, ask the user to start it. Record results as `test` entries (what ran, result, who ran it).
+   - **The integration test has a prerequisite: Keycloak from `cheetah-development-infrastructure` must be running** (see "Integration test prerequisites" below). Check it before running the test and tell the user what to start if it is missing; do not start it yourself unless the user says so.
 7. Check new and removed CVEs for the image if tooling is available (trivy), otherwise ask the user to report it. Log as a `test` entry.
 8. If something fails: diagnose, log an `issue` (symptom, root cause, evidence), propose a fix, ask, and repeat.
 
@@ -65,7 +83,7 @@ Order matters: development-infrastructure first, then gitops.
 
 **4a. cheetah-development-infrastructure (docker compose)**
 1. With permission, point `docker-compose/kafka.yaml` (kafka and kafka-setup images) at the snapshot, or tell the user what to change.
-2. Ask the user to run the stack (or run it yourself if Docker is available) and run `tests/kafka.sh`. Check that Kafka is healthy, the authorizer/OAuth path works, and Redpanda console sees brokers. Log results as `test` entries.
+2. Before running the stack, make sure the Phase 2 integration test is not still running its own Kafka (same hostname and ports, see "Integration test prerequisites"). Ask the user to run the stack (or run it yourself if Docker is available) and run `tests/kafka.sh`. Check that Kafka is healthy, the authorizer/OAuth path works, and Redpanda console sees brokers. Log results as `test` entries.
 
 **4b. cheetah-example-infrastructure-gitops (dev cluster)**
 1. Show the user the exact change for `infrastructure/kafka/release.yaml` (image tag, `version`, `metadataVersion` pin or the pattern from `playbooks.md`) and any other file. You may edit the file only with explicit permission; the user commits, merges and lets Flux apply it. Never apply anything to the cluster.

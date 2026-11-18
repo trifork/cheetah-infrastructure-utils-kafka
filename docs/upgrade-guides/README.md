@@ -8,11 +8,16 @@ Archive of upgrade guides for the `cheetah-infrastructure-utils-kafka` image.
 upgrade-guides/
 ├── README.md
 ├── upgrade-guide-template.md   template for new guides
+├── .upgrade-log/               local decision logs of the upgrade-kafka skill (git-ignored, not part of the archive)
 ├── 0.x/    all guides and supporting files targeting Strimzi 0.x
 └── 1.x/    all guides and supporting files targeting Strimzi 1.x
 ```
 
 Each version folder is flat: current guides, superseded guides and reference files all live directly in it.
+
+## Decision logs
+
+While an upgrade is in progress, the `upgrade-kafka` skill keeps a decision log in `.upgrade-log/<target-tag>.md`: every decision, change, test and source of that upgrade, used to generate the guide and to resume an interrupted upgrade. The folder is listed in `.gitignore`: the logs are local working notes and are never committed. The guide is the only record that is kept in git, so everything an operator needs must be in the guide. Whether the local log is kept or deleted after the release is up to the person who ran the upgrade.
 
 ## Guides
 

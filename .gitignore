@@ -1,6 +1,9 @@
 # megalinter
 megalinter-reports/
 
+# Working notes of the upgrade-kafka skill, local only (see docs/upgrade-guides/README.md)
+docs/upgrade-guides/.upgrade-log/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
