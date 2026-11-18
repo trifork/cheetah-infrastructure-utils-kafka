@@ -15,3 +15,6 @@ jobs:
     with:
       project-name: cheetah-infrastructure-utils-kafka
       tag-prefix: strimzi-
+    secrets:
+      PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+      
