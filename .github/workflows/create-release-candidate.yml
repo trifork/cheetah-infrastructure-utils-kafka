@@ -111,7 +111,7 @@ jobs:
       - name: Get version
         id: get-version
         run: |
-          version=$(grep -oP 'LABEL version="\K[^"]*' Dockerfile)
+          version=$(grep -oP 'LABEL version="\K[^"]*' Dockerfile) || version=""
           [ -n "$version" ] || { echo "::error::Could not read LABEL version from Dockerfile"; exit 1; }
           echo "version=$version" >> $GITHUB_OUTPUT
 
