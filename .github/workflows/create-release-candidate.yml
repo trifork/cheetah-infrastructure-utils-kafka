@@ -105,9 +105,15 @@ jobs:
     needs: [create-release-candidate-docker, create-release-candidate-maven]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Get version
         id: get-version
-        run: echo version=$(grep -oP 'LABEL version="\K[^"]*' Dockerfile) >> $GITHUB_OUTPUT
+        run: |
+          version=$(grep -oP 'LABEL version="\K[^"]*' Dockerfile) || version=""
+          [ -n "$version" ] || { echo "::error::Could not read LABEL version from Dockerfile"; exit 1; }
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Create checksum files
         run: |
@@ -118,7 +124,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
-          tag_name: v${{ steps.get-version.outputs.version }}-RC.${{ github.run_number }}
+          prerelease: true
+          tag_name: ${{ steps.get-version.outputs.version }}-RC.${{ github.run_number }}
           files: |
             image-checksum.txt
             jar-checksum.txt
