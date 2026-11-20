@@ -31,6 +31,16 @@ jobs:
 
           git checkout -b release/${{ inputs.version }}
 
+      - name: Stage version bump
+        run: git add Dockerfile pom.xml
+
+      - name: Verify version bump
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          grep -qF "LABEL version=\"$VERSION\"" Dockerfile || { echo "::error::Dockerfile does not contain version $VERSION"; exit 1; }
+          grep -qF "<version>$VERSION</version>" pom.xml || { echo "::error::pom.xml does not contain version $VERSION"; exit 1; }
+
       - name: Commit release branch creation
         id: commit-branch
         uses: qoomon/actions--create-commit@v1
