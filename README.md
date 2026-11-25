@@ -150,7 +150,7 @@ The text after `based on rule` is ours: `SuperUser`, `JwtClaims`, `DefaultDeny` 
 #### Staying identical to Kafka
 Apart from the text after `based on rule`, our lines must be identical to the ones Kafka's `StandardAuthorizer` writes (level and text). `AuditLogFormatTest` is the contract: it lets a real `StandardAuthorizer` and our plugin log the same request and compares them. If it fails after a Kafka upgrade, Kafka changed its logging: change the plugin to match, do not loosen the test.
 
-Current limits of the test: it calls the plugin's `audit` helper for a topic `WRITE`, so it protects the format and the levels, not *when* the plugin logs (a missing or misplaced call is not caught), and it does not cover `authorizeByResourceType`.
+Current limits of the test: it calls the plugin's `audit` helper for a topic `WRITE`, so it protects the format and the levels, not _when_ the plugin logs (a missing or misplaced call is not caught), and it does not cover `authorizeByResourceType`.
 
 ### Other logs
 The following types of info are logged by the plugin itself on different log levels:
