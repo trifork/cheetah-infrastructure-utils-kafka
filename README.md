@@ -143,8 +143,14 @@ Principal = User:alice is Allowed operation = WRITE from host = 10.1.2.3 on reso
 
 The appender, the `kafka-authorizer.log` file and the level are configured through Kafka's log4j settings (`logger.authorizer.level` in Strimzi). Like in Kafka, an allowed request is logged at DEBUG, a denied one at INFO, and checks Kafka did not ask for explicitly at TRACE.
 
+A denied idempotent producer (the default) leaves no INFO line, as in Kafka: for `InitProducerId` Kafka checks `IDEMPOTENT_WRITE` on the cluster with `logIfDenied = false`, then falls back to `authorizeByResourceType`, which `StandardAuthorizer` does not audit (checked in Kafka 4.2.0). Such a denial is only visible at TRACE; the client gets a `ClusterAuthorizationException`.
+
 The text after `based on rule` is ours: `SuperUser`, `JwtClaims`, `DefaultDeny` or `NoClaim` (the JWT does not have the configured claim).
-`AuditLogFormatTest` compares our lines with the ones a real `StandardAuthorizer` writes and fails with instructions if a Kafka upgrade changes the format.
+
+#### Staying identical to Kafka
+Apart from the text after `based on rule`, our lines must be identical to the ones Kafka's `StandardAuthorizer` writes (level and text). `AuditLogFormatTest` is the contract: it lets a real `StandardAuthorizer` and our plugin log the same request and compares them. If it fails after a Kafka upgrade, Kafka changed its logging: change the plugin to match, do not loosen the test.
+
+Current limits of the test: it calls the plugin's `audit` helper for a topic `WRITE`, so it protects the format and the levels, not *when* the plugin logs (a missing or misplaced call is not caught), and it does not cover `authorizeByResourceType`.
 
 ### Other logs
 The following types of info are logged by the plugin itself on different log levels:
