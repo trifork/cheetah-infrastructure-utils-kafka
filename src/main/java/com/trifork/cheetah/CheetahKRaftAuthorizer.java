@@ -208,17 +208,24 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
      * Kafka asks this for (WRITE, TOPIC) on InitProducerId when IDEMPOTENT_WRITE is denied.
      * Access comes from the JWT roles, not from ACLs, so this is answered from the roles
      * (a role on any topic counts) rather than by the delegate.
+     * The audit log is the same as Kafka's default Authorizer#authorizeByResourceType writes: one check of the
+     * hard-coded name "hardcode" (which only super users pass), and nothing for the final answer.
      */
     @Override
     public AuthorizationResult authorizeByResourceType(AuthorizableRequestContext requestContext, AclOperation op, ResourceType resourceType) {
         SecurityUtils.authorizeByResourceTypeCheckArgs(op, resourceType);
+        Action probe = new Action(op, new ResourcePattern(resourceType, "hardcode", PatternType.LITERAL), 0, true, false);
+        if (authorize(requestContext, List.of(probe)).get(0) == AuthorizationResult.ALLOWED) {
+            return AuthorizationResult.ALLOWED;
+        }
+        if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
+            return AuthorizationResult.DENIED;
+        }
         List<Action> actions = List.of(new Action(op,
                 new ResourcePattern(resourceType, ResourcePattern.WILDCARD_RESOURCE, PatternType.LITERAL),
                 1, false, false));
-        if (!(requestContext.principal() instanceof OAuthKafkaPrincipal)) {
-            return handleSuperUsers(requestContext, actions).get(0);
-        }
-        return authorizeFromJwt(requestContext, (OAuthKafkaPrincipal) requestContext.principal(), actions, true).get(0);
+        // No request context: decide from the roles without writing an audit line (see audit).
+        return authorizeFromJwt(null, (OAuthKafkaPrincipal) requestContext.principal(), actions, true).get(0);
     }
 
     @Override
@@ -280,6 +287,9 @@ public class CheetahKRaftAuthorizer implements ClusterMetadataAuthorizer {
      * StandardAuthorizerData.logAuditMessage; AuditLogFormatTest fails if they drift apart.
      */
     static void audit(AuthorizableRequestContext requestContext, Action action, AuthorizationResult result, String rule) {
+        if (requestContext == null) {
+            return; // a decision that Kafka does not audit
+        }
         boolean allowed = result == AuthorizationResult.ALLOWED;
         boolean explicit = allowed ? action.logIfAllowed() : action.logIfDenied();
         // Kafka logs an explicitly requested access check at DEBUG (allowed) or INFO (denied), anything else at TRACE.
