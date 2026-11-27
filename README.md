@@ -148,9 +148,9 @@ A denied idempotent producer (the default) leaves no INFO line, as in Kafka: for
 The text after `based on rule` is ours: `SuperUser`, `JwtClaims`, `DefaultDeny` or `NoClaim` (the JWT does not have the configured claim).
 
 #### Staying identical to Kafka
-Apart from the text after `based on rule`, our lines must be identical to the ones Kafka's `StandardAuthorizer` writes (level and text). `AuditLogFormatTest` is the contract: it lets a real `StandardAuthorizer` and our plugin log the same request and compares them. If it fails after a Kafka upgrade, Kafka changed its logging: change the plugin to match, do not loosen the test.
+Apart from the text after `based on rule`, our lines must be identical to the ones Kafka's `StandardAuthorizer` writes (level, text and number of lines). `AuditLogFormatTest` is the contract. It is black box: a real `StandardAuthorizer` (with ACLs) and our plugin (with the equivalent JWT roles) get the same requests through `authorize` and `authorizeByResourceType`, and every audit line and decision is compared. It covers a super user, allowed and denied principals and a JWT without the claim, every `logIfAllowed`/`logIfDenied` combination, calls with several actions, and the `InitProducerId` fallback.
 
-Current limits of the test: it calls the plugin's `audit` helper for a topic `WRITE`, so it protects the format and the levels, not *when* the plugin logs (a missing or misplaced call is not caught), and it does not cover `authorizeByResourceType`.
+If it fails after a Kafka upgrade, Kafka changed its logging: change the plugin to match, do not loosen the test. Not covered: what Kafka itself decides to call (which API asks which authorizer method, with which flags); that needs a broker.
 
 ### Other logs
 The following types of info are logged by the plugin itself on different log levels:
